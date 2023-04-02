@@ -17,6 +17,27 @@
 
 #include "functional_config.hpp"
 
+#define Q_NULL reinterpret_cast<void*>(0)
+
+inline namespace {
+	constexpr const struct {
+		template<class _Ty> operator _Ty* () const {
+			return static_cast<_Ty*>(Q_NULL);
+		}
+
+		template<class _Ty, class _Holder> operator _Ty _Holder::* () const {
+			return Q_NULL;
+		}
+
+		operator void* () const {
+			return Q_NULL;
+		}
+
+	private:
+		void operator&() const;
+	} Q_nullptr = {};
+}
+
 #ifndef FUNCTIONAL_DONT_DEFINE_VARARGS
 
 #define va_list
@@ -40,7 +61,7 @@ typedef char* va_list;
 #endif //va_arg
 #ifdef va_end
 #undef va_end
-#define va_end(list) list = NULL
+#define va_end(list) list = Q_nullptr
 #endif //va_end
 
 #endif //FUNCTIONAL_DONT_DEFINE_VARARGS
@@ -105,7 +126,7 @@ template<typename _Tester = two_enable_if_t<sizeof(void*) == 4, int, long long>>
 //We're getting rid outta int on 32 bit platforms and long long on 64 bit platforms, so typedef the right underlying type to suit our needs. - xWhitey
 typedef CPointerSizeDetector<two_enable_if_t<sizeof(void*) == 4, int, long long>>::m_tType functional_size_t;
 typedef CPointerSizeDetector<two_enable_if_t<sizeof(void*) == 4, unsigned int, unsigned long long>>::m_tType functional_unsigned_size_t;
-typedef functional_size_t functional_uintptr_t;
+typedef functional_unsigned_size_t functional_uintptr_t;
 typedef functional_uintptr_t functional_ptrdiff_t;
 
 //Simple constexpr bool. Though we don't use it ourselves. - xWhitey
@@ -113,6 +134,60 @@ template<bool _Condition> using constexpr_bool = integral_constant<bool, _Condit
 /* Usage:
 constexpr constexpr_bool<true == false> someConstexprBool;
 */
+
+#ifndef _CRT_HYBRIDPATCHABLE
+#define _CRT_HYBRIDPATCHABLE
+#endif //_CRT_HYBRIDPATCHABLE
+
+/* Fake SAL */
+
+#ifndef _In_
+#define _In_
+#endif //_In_
+#ifndef _In_opt_
+#define _In_opt_
+#endif //_In_opt_
+#ifndef _Out_
+#define _Out_
+#endif //_Out_
+#ifndef _Out_opt_
+#define _Out_opt_
+#endif //_Out_opt_
+#ifndef _Pre_maybenull_
+#define _Pre_maybenull_
+#endif //_Pre_maybenull_
+#ifndef _Post_invalid_
+#define _Post_invalid_
+#endif //_Post_invalid_
+#ifndef _Out_writes_bytes_all_
+#define _Out_writes_bytes_all_(_Expr)
+#endif //_Out_writes_bytes_all_
+#ifndef _In_reads_bytes_
+#define _In_reads_bytes_(_Expr)
+#endif //_In_reads_bytes_
+#ifndef _In_z_
+#define _In_z_
+#endif //_In_z_
+#ifndef _In_reads_or_z_
+#define _In_reads_or_z_(_Expr)
+#endif //_In_reads_or_z_
+#ifndef _Pre_notnull_
+#define _Pre_notnull_
+#endif //_Pre_notnull_
+#ifndef _Success_
+#define _Success_(_Expr)
+#endif //_Success_
+#ifndef _Always_
+#define _Always_(_Expr)
+#endif //_Always_
+#ifndef _Post_z_
+#define _Post_z_
+#endif //_Post_z_
+#ifndef _Printf_format_string_
+#define _Printf_format_string_
+#endif //_Printf_format_string_
+
+/* Fake SAL end */
 
 #ifndef FUNCTIONAL_NO_ALLOCATOR
 inline namespace YouShouldNotUseThisFunctional {
@@ -129,9 +204,9 @@ typedef struct CAllocator {
 		allocator._m_lpSegments = (CAllocatedSegment*)allocator._m_acMemoryPool;
 		allocator._m_lpSegments->m_bIsFree = Q_TRUE;
 		allocator._m_lpSegments->m_iSize = FUNCTIONAL_HEAP_SIZE / FUNCTIONAL_BLOCK_SIZE;
-		allocator._m_lpSegments->m_lpNext = nullptr;
-		allocator._m_lpSegments->m_lpPrevious = nullptr;
-		allocator._m_lpOldFreeSegment = nullptr;
+		allocator._m_lpSegments->m_lpNext = Q_nullptr;
+		allocator._m_lpSegments->m_lpPrevious = Q_nullptr;
+		allocator._m_lpOldFreeSegment = Q_nullptr;
 
 		return &allocator;
 	}
@@ -185,7 +260,7 @@ typedef struct CAllocator {
 		CAllocatedSegment* it = SearchFreeSegment(this->_m_lpOldFreeSegment, s);
 		if (!it) it = SearchFreeSegment(this->_m_lpSegments, s);
 		if (!it) {
-			return nullptr;
+			return Q_nullptr;
 		}
 
 		it->m_bIsFree = Q_FALSE;
@@ -215,10 +290,14 @@ private:
 static CAllocator* gs_lpAllocator = CAllocator::Init();
 
 void* Q_malloc(_In_ functional_size_t _Size) {
+	if (!gs_lpAllocator || reinterpret_cast<functional_uintptr_t>(gs_lpAllocator) == 1) gs_lpAllocator = CAllocator::Init();
+
 	return gs_lpAllocator->Allocate(_Size);
 }
 
 void Q_free(_In_ void* _Pointer) {
+	if (!gs_lpAllocator || reinterpret_cast<functional_uintptr_t>(gs_lpAllocator) == 1) gs_lpAllocator = CAllocator::Init();
+
 	gs_lpAllocator->Free(_Pointer);
 }
 #endif //FUNCTIONAL_NO_ALLOCATOR
@@ -245,60 +324,6 @@ void Q_free(_In_ void* _Pointer) {
 #define INT_MAX 2147483647
 #endif //INT_MAX
 
-#ifndef _CRT_HYBRIDPATCHABLE
-#define _CRT_HYBRIDPATCHABLE
-#endif //_CRT_HYBRIDPATCHABLE
-
-/* Fake SAL */
-
-#ifndef _In_
-#define _In_
-#endif //_In_
-#ifndef _In_opt_
-#define _In_opt_
-#endif //_In_opt_
-#ifndef _Out_
-#define _Out_
-#endif //_Out_
-#ifndef _Out_opt_
-#define _Out_opt_
-#endif //_Out_opt_
-#ifndef _Pre_maybenull_
-#define _Pre_maybenull_
-#endif //_Pre_maybenull_
-#ifndef _Post_invalid_
-#define _Post_invalid_
-#endif //_Post_invalid_
-#ifndef _Out_writes_bytes_all_
-#define _Out_writes_bytes_all_
-#endif //_Out_writes_bytes_all_
-#ifndef _In_reads_bytes_
-#define _In_reads_bytes_
-#endif //_In_reads_bytes_
-#ifndef _In_z_
-#define _In_z_
-#endif //_In_z_
-#ifndef _In_reads_or_z_
-#define _In_reads_or_z_
-#endif //_In_reads_or_z_
-#ifndef _Pre_notnull_
-#define _Pre_notnull_
-#endif //_Pre_notnull_
-#ifndef _Success_
-#define _Success_(_Expr)
-#endif //_Success_
-#ifndef _Always_
-#define _Always_(_Expr)
-#endif //_Always_
-#ifndef _Post_z_
-#define _Post_z_
-#endif //_Post_z_
-#ifndef _Printf_format_string_
-#define _Printf_format_string_
-#endif //_Printf_format_string_
-
-/* Fake SAL end */
-
 #ifdef FUNCTIONAL_FIX_FLTUSED_NOT_FOUND
 extern "C" bool _fltused = false;
 #endif //FUNCTIONAL_FIX_FLTUSED_NOT_FOUND
@@ -313,29 +338,29 @@ extern "C" bool _fltused = false;
 
 //(-)2147483647(e)
 #define INT_STR_SIZE (sizeof(int) * CHAR_BIT / 3 + 3)
-constexpr auto a = FLT_MAX;
+
 //(-)3.402823466e+38F
 #define FLOAT_STR_SIZE (sizeof(float) * CHAR_BIT / 3 + 18)
+
+void* Q_memcpy(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size) const void* _Src, _In_ unsigned int _Size) {
+	auto dest = static_cast<char*>(_Dst);
+	auto source = static_cast<const char*>(_Src);
+
+	if (dest && source) {
+		while (_Size) {
+			*dest++ = *source++;
+			--_Size;
+		}
+	}
+
+	return dest;
+}
 
 namespace
 #ifdef FUNCTIONAL_DONT_USE_ANONYMOUS_NAMESPACE
 functional
 #endif //FUNCTIONAL_DONT_USE_ANONYMOUS_NAMESPACE
 {
-	void* Q_memcpy(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size) const void* _Src, _In_ unsigned int _Size) {
-		auto dest = static_cast<char*>(_Dst);
-		auto source = static_cast<const char*>(_Src);
-
-		if (dest && source) {
-			while (_Size) {
-				*dest++ = *source++;
-				--_Size;
-			}
-		}
-
-		return dest;
-	}
-
 	functional_size_t Q_strlen(_In_z_ const char* _Str) {
 		const char* p = const_cast<char*>(&_Str[0]);
 
@@ -378,16 +403,16 @@ functional
 
 	functional_size_t Q_strcmp(_In_z_ const char* _Str1, _In_z_ const char* _Str2) {
 		for (; *_Str1 == *_Str2; ++_Str1, ++_Str2) {
-			if (*_Str1 == '\0') return(0);
+			if (*_Str1 == '\0') return 0;
 		}
 
-		return(Q_strlen(_Str1) < Q_strlen(_Str2) ? -1 : 1);
+		return Q_strlen(_Str1) < Q_strlen(_Str2) ? -1 : 1;
 	}
 
 	functional_size_t Q_strncmp(_In_reads_or_z_(_MaxCount) const char* _Str1, _In_reads_or_z_(_MaxCount) const char* _Str2, _In_ functional_unsigned_size_t _MaxCount) {
 		while (_MaxCount && *_Str1 && (*_Str1 == *_Str2)) ++_Str1, ++_Str2, --_MaxCount;
 
-		if (_MaxCount == 0) return(0);
+		if (_MaxCount == 0) return 0;
 
 		return(*(unsigned char*)_Str1 - *(unsigned char*)_Str2);
 	}
@@ -420,16 +445,14 @@ functional
 		if (_Value < 0) {
 			*(--p) = '-';
 		}
-		const auto len = static_cast<size_t>(&buf[INT_STR_SIZE] - p);
+		const auto len = static_cast<functional_size_t>(&buf[INT_STR_SIZE] - p);
 		if (len > _Size) {
-			return(NULL);
+			return Q_nullptr;
 		}
-		return(static_cast<char*>(Q_memcpy(_Dest, p, len)));
+		return static_cast<char*>(Q_memcpy(_Dest, p, len));
 	}
 
-	char* Q_itoa_octal(_In_ functional_size_t _Number) {
-		const auto buffer = static_cast<char*>(Q_malloc(INT_STR_SIZE));
-
+	functional_size_t Q_integer_to_octal(_In_ functional_size_t _Number) {
 		functional_size_t modulo, octal = 0, idx = 1;
 
 		while (_Number != 0) {
@@ -439,13 +462,13 @@ functional
 			idx = idx * 10;
 		}
 
-		return buffer;
+		return octal;
 	}
 
 	char* Q_itoa(_In_ functional_size_t _Number) {
 		const auto buffer = static_cast<char*>(Q_malloc(INT_STR_SIZE));
 		Q_itoa_internal(buffer, INT_STR_SIZE, _Number);
-		return(buffer);
+		return buffer;
 	}
 
 	functional_size_t Q_atoi(char* s) {
@@ -609,6 +632,15 @@ functional
 				if (*p == '%') {
 					++p;
 					switch (*p) {
+					case 'o': {
+						const auto it = Q_integer_to_octal(*static_cast<functional_size_t*>(args[thiz]));
+						const char* converted = Q_itoa(it);
+						Q_strcat(buffer, converted);
+						writtenChars += Q_strlen(converted);
+						++thiz;
+						++p;
+					}
+							break;
 					case 'u': 
 					case 'i':
 					case 'd': {
@@ -639,7 +671,7 @@ functional
 					}
 							break;
 					case 'x': {
-						if (const auto num = *static_cast<unsigned int*>(args[thiz])) {
+						if (const auto num = *static_cast<functional_uintptr_t*>(args[thiz])) {
 							const char* str = Q_itohexa(num);
 							writtenChars += Q_strlen(str);
 							Q_strcat(buffer, str);
@@ -652,7 +684,7 @@ functional
 					}
 							break;
 					case 'X': {
-						if (const auto num = *static_cast<unsigned int*>(args[thiz])) {
+						if (const auto num = *static_cast<functional_uintptr_t*>(args[thiz])) {
 							const char* str = Q_itohexa_upper(num);
 							writtenChars += Q_strlen(str);
 							Q_strcat(buffer, str);
@@ -674,7 +706,7 @@ functional
 					}
 							break;
 					case 'p': {
-						if (const auto addr = reinterpret_cast<uintptr_t>(reinterpret_cast<void*>(args[thiz]))) {
+						if (const auto addr = reinterpret_cast<functional_uintptr_t>(reinterpret_cast<void*>(args[thiz]))) {
 							const char* str = Q_itohexa(addr);
 							writtenChars += Q_strlen(str);
 							Q_strcat(buffer, str);
