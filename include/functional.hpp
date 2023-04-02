@@ -26,7 +26,7 @@ inline namespace {
 		}
 
 		template<class _Ty, class _Holder> operator _Ty _Holder::* () const {
-			return Q_NULL;
+			return static_cast<_Ty*>(Q_NULL);;
 		}
 
 		operator void* () const {
