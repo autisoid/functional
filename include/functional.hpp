@@ -545,7 +545,7 @@ functional
 		return (_C);
 	}
 
-	char* Q_itohexa_helper(_In_ char* _Dest, _In_ uintptr_t _Val) {
+	char* Q_itohexa_helper(_In_ char* _Dest, _In_ functional_uintptr_t _Val) {
 		if (_Val >= 16) {
 			_Dest = Q_itohexa_helper(_Dest, _Val / 16);
 		}
@@ -553,18 +553,18 @@ functional
 		return (_Dest);
 	}
 
-	char* Q_itohexa(_In_ uintptr_t _Val) {
+	char* Q_itohexa(_In_ functional_uintptr_t _Val) {
 		const auto buffer = static_cast<char*>(Q_malloc(32));
 		*Q_itohexa_helper(buffer, _Val) = '\0';
 	
 		return (buffer);
 	}
 
-	char* Q_itohexa_upper(_In_ uintptr_t _Val) {
+	char* Q_itohexa_upper(_In_ functional_uintptr_t _Val) {
 		char* buffer = Q_itohexa(_Val);
-		const int len = Q_strlen(buffer);
+		const functional_size_t len = Q_strlen(buffer);
 
-		for (int idx = 0; idx < len; idx++) {
+		for (functional_size_t idx = 0; idx < len; idx++) {
 			buffer[idx] = Q_toupper(buffer[idx]);
 		}
 
