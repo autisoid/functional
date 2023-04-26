@@ -48,7 +48,7 @@
 //Default: undefined
 
 //#define FUNCTIONAL_DONT_DEFINE_VARARGS
-//Disables definition of va_list, va_start, va_arg, va_end.
+//Disables definition of Q_va_list, Q_va_start, Q_va_arg, Q_va_end.
 //Default: undefined
 
 //#define FUNCTIONAL_DONT_USE_ANONYMOUS_NAMESPACE

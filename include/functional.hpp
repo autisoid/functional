@@ -61,9 +61,17 @@
 
 #ifdef __cplusplus
 
+#ifdef __has_include
+#if !__has_include("functional_config.hpp")
+#define FUNCTIONAL_DONT_INCLUDE_CONFIG
+#endif //!__has_include("functional_config.hpp")
+#endif //__has_include
+
 #ifndef FUNCTIONAL_DONT_INCLUDE_CONFIG
 #include "functional_config.hpp"
 #endif //FUNCTIONAL_DONT_INCLUDE_CONFIG
+
+#include "functional_fake_sal2.hpp"
 
 #ifdef FUNCTIONAL_DONT_INCLUDE_CONFIG
 #define FUNCTIONAL_HEAP_SIZE 2 * 1024 * 1024 * 512
@@ -204,10 +212,26 @@ template<class _Ty> struct remove_const<const _Ty> { typedef _Ty type; };
 template<class _Ty> struct remove_volatile { typedef _Ty type; };
 template<class _Ty> struct remove_volatile<volatile _Ty> { typedef _Ty type; };
 
-template<class _Ty> struct remove_cv { typedef _Ty type; };
-template<class _Ty> struct remove_cv<const _Ty> { typedef _Ty type; };
-template<class _Ty> struct remove_cv<volatile _Ty> { typedef _Ty type; };
-template<class _Ty> struct remove_cv<const volatile _Ty> { typedef _Ty type; };
+template<class _Ty> struct remove_cv { 
+	typedef _Ty type; 
+	
+	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
+};
+template<class _Ty> struct remove_cv<const _Ty> { 
+	typedef _Ty type; 
+
+	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
+};
+template<class _Ty> struct remove_cv<volatile _Ty> { 
+	typedef _Ty type; 
+
+	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
+};
+template<class _Ty> struct remove_cv<const volatile _Ty> {
+	typedef _Ty type; 	
+	
+	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
+};
 
 template<class _Ty> struct is_const : false_type {};
 template<class _Ty> struct is_const<const _Ty> : true_type {};
@@ -217,6 +241,70 @@ template<class _Ty> struct is_reference<_Ty&> : true_type {};
 template<class _Ty> struct is_reference<_Ty&&> : true_type {};
 
 template<class _Ty> struct is_function : integral_constant<bool, !is_const<const _Ty>::value && !is_reference<_Ty>::value> {};
+
+//format me if indeed - was copy-pasted from msvc's std
+template <bool> struct _Select {
+	template <class _Ty1, class> using _Apply = _Ty1;
+};
+
+template <> struct _Select<false> {
+	template <class, class _Ty2> using _Apply = _Ty2;
+};
+
+template <functional_unsigned_size_t>
+struct _Make_signed2;
+
+template <> struct _Make_signed2<1> {
+	template <class> using _Apply = signed char;
+};
+
+template <> struct _Make_signed2<2> {
+	template <class> using _Apply = short;
+};
+
+template <> struct _Make_signed2<4> {
+	template <class _Ty> using _Apply = typename _Select<is_same_v<_Ty, long> || is_same_v<_Ty, unsigned long>>::template _Apply<long, int>;
+};
+
+template <> struct _Make_signed2<8> {
+	template <class>
+	using _Apply = long long;
+};
+
+template <class _Ty> using _Make_signed1 = typename _Make_signed2<sizeof(_Ty)>::template _Apply<_Ty>;
+
+template <class _Ty> struct make_signed {
+	typedef typename remove_cv<_Ty>::template _Apply<_Make_signed1> type;
+};
+
+template <class _Ty> using make_signed_t = typename make_signed<_Ty>::type;
+
+template <functional_unsigned_size_t> struct _Make_unsigned2;
+
+template <> struct _Make_unsigned2<1> {
+	template <class> using _Apply = unsigned char;
+};
+
+template <> struct _Make_unsigned2<2> {
+	template <class> using _Apply = unsigned short;
+};
+
+template <> struct _Make_unsigned2<4> {
+	template <class _Ty> using _Apply = typename _Select<is_same_v<_Ty, long> || is_same_v<_Ty, unsigned long>>::template _Apply<unsigned long, unsigned int>;
+};
+
+template <> struct _Make_unsigned2<8> {
+	template <class> using _Apply = unsigned long long;
+};
+
+template <class _Ty> using _Make_unsigned1 = typename _Make_unsigned2<sizeof(_Ty)>::template _Apply<_Ty>;
+
+template <class _Ty> struct make_unsigned {
+	typedef typename remove_cv<_Ty>::template _Apply<_Make_unsigned1> type;
+};
+
+template <class _Ty> using make_unsigned_t = typename make_unsigned<_Ty>::type;
+//format me end
 
 template<class _Ty> struct decay {
 private:
@@ -244,6 +332,39 @@ template <class _Ty> constexpr remove_reference_t<_Ty>&& move(_Ty&& _Arg) {
 	return static_cast<remove_reference_t<_Ty>&&>(_Arg);
 }
 
+template <class _Ty, _Ty... _Values> struct integer_sequence {
+	typedef _Ty value_type;
+
+	static constexpr functional_unsigned_size_t size() noexcept {
+		return sizeof...(_Values);
+	}
+};
+
+template <functional_unsigned_size_t... _Values> struct index_sequence {
+	typedef functional_unsigned_size_t value_type;
+
+	static constexpr functional_unsigned_size_t size() noexcept {
+		return sizeof...(_Values);
+	}
+};
+
+template <class Sequence1, class Sequence2>
+struct _merge_and_renumber;
+
+template <size_t... I1, size_t... I2>
+struct _merge_and_renumber<index_sequence<I1...>, index_sequence<I2...>>
+	: index_sequence<I1..., (sizeof...(I1) + I2)...>
+{ };
+
+template <size_t N>
+struct make_index_sequence
+	: _merge_and_renumber<typename make_index_sequence<N / 2>::type,
+	typename make_index_sequence<N - N / 2>::type>
+{ };
+
+template<> struct make_index_sequence<0> : index_sequence<> { };
+template<> struct make_index_sequence<1> : index_sequence<0> { };
+
 template<class _Callee, class... _Ts> auto Q_bind(_Callee(*_Function)(_Ts... _Args)) {
 	return ([&](_Ts... _Placeholders) {
 		return _Function(_Placeholders...);
@@ -253,957 +374,13 @@ template<class _Callee, class... _Ts> auto Q_bind(_Callee(*_Function)(_Ts... _Ar
 #define FUNCTIONAL_DIRECT_ALIAS(_Original, _Shadow) auto _Shadow = _Original;
 #define FUNCTIONAL_STRONG_ALIAS(_Original, _Shadow) auto _Shadow = Q_bind(_Original);
 
-#ifndef _CRT_HYBRIDPATCHABLE
-#define _CRT_HYBRIDPATCHABLE
-#endif //_CRT_HYBRIDPATCHABLE
-
-/* Fake SAL */
-
-#ifndef FUNCTIONAL_FAKE_SAL_DEFINED
-#define FUNCTIONAL_FAKE_SAL_DEFINED
-#ifdef _When_
-#undef _When_
-#endif
-#define _When_(c,a)
-#ifdef _At_
-#undef _At_
-#endif
-#define _At_(t,a)
-#ifdef _At_buffer_
-#undef _At_buffer_
-#endif
-#define _At_buffer_(t,i,c,a)
-#ifdef _Group_
-#undef _Group_
-#endif
-#define _Group_(a)
-#ifdef _Pre_
-#undef _Pre_
-#endif
-#define _Pre_
-#ifdef _Post_
-#undef _Post_
-#endif
-#define _Post_
-#ifdef _Deref_
-#undef _Deref_
-#endif
-#define _Deref_
-#ifdef _Null_
-#undef _Null_
-#endif
-#define _Null_
-#ifdef _Notnull_
-#undef _Notnull_
-#endif
-#define _Notnull_
-#ifdef _Maybenull_
-#undef _Maybenull_
-#endif
-#define _Maybenull_
-#ifdef _Const_
-#undef _Const_
-#endif
-#define _Const_
-#ifdef _Check_return_
-#undef _Check_return_
-#endif
-#define _Check_return_
-#ifdef _Must_inspect_result_
-#undef _Must_inspect_result_
-#endif
-#define _Must_inspect_result_
-#ifdef _Pre_satisfies_
-#undef _Pre_satisfies_
-#endif
-#define _Pre_satisfies_(e)
-#ifdef _Post_satisfies_
-#undef _Post_satisfies_
-#endif
-#define _Post_satisfies_(e)
-#ifdef _Writable_elements_
-#undef _Writable_elements_
-#endif
-#define _Writable_elements_(s)
-#ifdef _Writable_bytes_
-#undef _Writable_bytes_
-#endif
-#define _Writable_bytes_(s)
-#ifdef _Readable_elements_
-#undef _Readable_elements_
-#endif
-#define _Readable_elements_(s)
-#ifdef _Readable_bytes_
-#undef _Readable_bytes_
-#endif
-#define _Readable_bytes_(s)
-#ifdef _Null_terminated_
-#undef _Null_terminated_
-#endif
-#define _Null_terminated_
-#ifdef _NullNull_terminated_
-#undef _NullNull_terminated_
-#endif
-#define _NullNull_terminated_
-#ifdef _Valid_
-#undef _Valid_
-#endif
-#define _Valid_
-#ifdef _Notvalid_
-#undef _Notvalid_
-#endif
-#define _Notvalid_
-#ifdef _Success_
-#undef _Success_
-#endif
-#define _Success_(c)
-#ifdef _Return_type_success_
-#undef _Return_type_success_
-#endif
-#define _Return_type_success_(c)
-#ifdef _On_failure_
-#undef _On_failure_
-#endif
-#define _On_failure_(a)
-#ifdef _Always_
-#undef _Always_
-#endif
-#define _Always_(a)
-#ifdef _Use_decl_annotations_
-#undef _Use_decl_annotations_
-#endif
-#define _Use_decl_annotations_
-#ifdef _Pre_defensive_
-#undef _Pre_defensive_
-#endif
-#define _Pre_defensive_
-#ifdef _Post_defensive_
-#undef _Post_defensive_
-#endif
-#define _Post_defensive_
-#ifdef _Pre_unknown_
-#undef _Pre_unknown_
-#endif
-#define _Pre_unknown_
-#ifdef _Acquires_lock_
-#undef _Acquires_lock_
-#endif
-#define _Acquires_lock_(e)
-#ifdef _Releases_lock_
-#undef _Releases_lock_
-#endif
-#define _Releases_lock_(e)
-#ifdef _Requires_lock_held_
-#undef _Requires_lock_held_
-#endif
-#define _Requires_lock_held_(e)
-#ifdef _Requires_lock_not_held_
-#undef _Requires_lock_not_held_
-#endif
-#define _Requires_lock_not_held_(e)
-#ifdef _Requires_no_locks_held_
-#undef _Requires_no_locks_held_
-#endif
-#define _Requires_no_locks_held_
-#ifdef _Guarded_by_
-#undef _Guarded_by_
-#endif
-#define _Guarded_by_(e)
-#ifdef _Write_guarded_by_
-#undef _Write_guarded_by_
-#endif
-#define _Write_guarded_by_(e)
-#ifdef _Interlocked_
-#undef _Interlocked_
-#endif
-#define _Interlocked_
-#ifdef _Post_same_lock_
-#undef _Post_same_lock_
-#endif
-#define _Post_same_lock_(e1,e2)
-#ifdef _Benign_race_begin_
-#undef _Benign_race_begin_
-#endif
-#define _Benign_race_begin_
-#ifdef _Benign_race_end_
-#undef _Benign_race_end_
-#endif
-#define _Benign_race_end_
-#ifdef _No_competing_thread_
-#undef _No_competing_thread_
-#endif
-#define _No_competing_thread_
-#ifdef _No_competing_thread_begin_
-#undef _No_competing_thread_begin_
-#endif
-#define _No_competing_thread_begin_
-#ifdef _No_competing_thread_end_
-#undef _No_competing_thread_end_
-#endif
-#define _No_competing_thread_end_
-#ifdef _Acquires_shared_lock_
-#undef _Acquires_shared_lock_
-#endif
-#define _Acquires_shared_lock_(e)
-#ifdef _Releases_shared_lock_
-#undef _Releases_shared_lock_
-#endif
-#define _Releases_shared_lock_(e)
-#ifdef _Requires_shared_lock_held_
-#undef _Requires_shared_lock_held_
-#endif
-#define _Requires_shared_lock_held_(e)
-#ifdef _Acquires_exclusive_lock_
-#undef _Acquires_exclusive_lock_
-#endif
-#define _Acquires_exclusive_lock_(e)
-#ifdef _Releases_exclusive_lock_
-#undef _Releases_exclusive_lock_
-#endif
-#define _Releases_exclusive_lock_(e)
-#ifdef _Requires_exclusive_lock_held_
-#undef _Requires_exclusive_lock_held_
-#endif
-#define _Requires_exclusive_lock_held_(e)
-#ifdef _Has_lock_kind_
-#undef _Has_lock_kind_
-#endif
-#define _Has_lock_kind_(n)
-#ifdef _Create_lock_level_
-#undef _Create_lock_level_
-#endif
-#define _Create_lock_level_(n)
-#ifdef _Has_lock_level_
-#undef _Has_lock_level_
-#endif
-#define _Has_lock_level_(n)
-#ifdef _Lock_level_order_
-#undef _Lock_level_order_
-#endif
-#define _Lock_level_order_(n1,n2)
-#ifdef _Analysis_assume_lock_acquired_
-#undef _Analysis_assume_lock_acquired_
-#endif
-#define _Analysis_assume_lock_acquired_(e)
-#ifdef _Analysis_assume_lock_released_
-#undef _Analysis_assume_lock_released_
-#endif
-#define _Analysis_assume_lock_released_(e)
-#ifdef _Analysis_assume_lock_held_
-#undef _Analysis_assume_lock_held_
-#endif
-#define _Analysis_assume_lock_held_(e)
-#ifdef _Analysis_assume_lock_not_held_
-#undef _Analysis_assume_lock_not_held_
-#endif
-#define _Analysis_assume_lock_not_held_(e)
-#ifdef _Analysis_assume_same_lock_
-#undef _Analysis_assume_same_lock_
-#endif
-#define _Analysis_assume_same_lock_(e)
-#ifdef _In_
-#undef _In_
-#endif
-#define _In_
-#ifdef _Out_
-#undef _Out_
-#endif
-#define _Out_
-#ifdef _Inout_
-#undef _Inout_
-#endif
-#define _Inout_
-#ifdef _In_z_
-#undef _In_z_
-#endif
-#define _In_z_
-#ifdef _Inout_z_
-#undef _Inout_z_
-#endif
-#define _Inout_z_
-#ifdef _In_reads_
-#undef _In_reads_
-#endif
-#define _In_reads_(s)
-#ifdef _In_reads_bytes_
-#undef _In_reads_bytes_
-#endif
-#define _In_reads_bytes_(s)
-#ifdef _In_reads_z_
-#undef _In_reads_z_
-#endif
-#define _In_reads_z_(s)
-#ifdef _In_reads_or_z_
-#undef _In_reads_or_z_
-#endif
-#define _In_reads_or_z_(s)
-#ifdef _Out_writes_
-#undef _Out_writes_
-#endif
-#define _Out_writes_(s)
-#ifdef _Out_writes_bytes_
-#undef _Out_writes_bytes_
-#endif
-#define _Out_writes_bytes_(s)
-#ifdef _Out_writes_z_
-#undef _Out_writes_z_
-#endif
-#define _Out_writes_z_(s)
-#ifdef _Inout_updates_
-#undef _Inout_updates_
-#endif
-#define _Inout_updates_(s)
-#ifdef _Inout_updates_bytes_
-#undef _Inout_updates_bytes_
-#endif
-#define _Inout_updates_bytes_(s)
-#ifdef _Inout_updates_z_
-#undef _Inout_updates_z_
-#endif
-#define _Inout_updates_z_(s)
-#ifdef _Out_writes_to_
-#undef _Out_writes_to_
-#endif
-#define _Out_writes_to_(s,c)
-#ifdef _Out_writes_bytes_to_
-#undef _Out_writes_bytes_to_
-#endif
-#define _Out_writes_bytes_to_(s,c)
-#ifdef _Out_writes_all_
-#undef _Out_writes_all_
-#endif
-#define _Out_writes_all_(s)
-#ifdef _Out_writes_bytes_all_
-#undef _Out_writes_bytes_all_
-#endif
-#define _Out_writes_bytes_all_(s)
-#ifdef _Inout_updates_to_
-#undef _Inout_updates_to_
-#endif
-#define _Inout_updates_to_(s,c)
-#ifdef _Inout_updates_bytes_to_
-#undef _Inout_updates_bytes_to_
-#endif
-#define _Inout_updates_bytes_to_(s,c)
-#ifdef _Inout_updates_all_
-#undef _Inout_updates_all_
-#endif
-#define _Inout_updates_all_(s)
-#ifdef _Inout_updates_bytes_all_
-#undef _Inout_updates_bytes_all_
-#endif
-#define _Inout_updates_bytes_all_(s)
-#ifdef _In_reads_to_ptr_
-#undef _In_reads_to_ptr_
-#endif
-#define _In_reads_to_ptr_(p)
-#ifdef _In_reads_to_ptr_z_
-#undef _In_reads_to_ptr_z_
-#endif
-#define _In_reads_to_ptr_z_(p)
-#ifdef _Out_writes_to_ptr_
-#undef _Out_writes_to_ptr_
-#endif
-#define _Out_writes_to_ptr_(p)
-#ifdef _Out_writes_to_ptr_z_
-#undef _Out_writes_to_ptr_z_
-#endif
-#define _Out_writes_to_ptr_z_(p)
-#ifdef _In_opt_
-#undef _In_opt_
-#endif
-#define _In_opt_
-#ifdef _Out_opt_
-#undef _Out_opt_
-#endif
-#define _Out_opt_
-#ifdef _Inout_opt_
-#undef _Inout_opt_
-#endif
-#define _Inout_opt_
-#ifdef _In_opt_z_
-#undef _In_opt_z_
-#endif
-#define _In_opt_z_
-#ifdef _Inout_opt_z_
-#undef _Inout_opt_z_
-#endif
-#define _Inout_opt_z_
-#ifdef _In_reads_opt_
-#undef _In_reads_opt_
-#endif
-#define _In_reads_opt_(s)
-#ifdef _In_reads_opt_z_
-#undef _In_reads_opt_z_
-#endif
-#define _In_reads_opt_z_(s)
-#ifdef _In_reads_bytes_opt_
-#undef _In_reads_bytes_opt_
-#endif
-#define _In_reads_bytes_opt_(s)
-#ifdef _Out_writes_opt_
-#undef _Out_writes_opt_
-#endif
-#define _Out_writes_opt_(s)
-#ifdef _Out_writes_bytes_opt_
-#undef _Out_writes_bytes_opt_
-#endif
-#define _Out_writes_bytes_opt_(s)
-#ifdef _Out_writes_opt_z_
-#undef _Out_writes_opt_z_
-#endif
-#define _Out_writes_opt_z_(s)
-#ifdef _Inout_updates_opt_
-#undef _Inout_updates_opt_
-#endif
-#define _Inout_updates_opt_(s)
-#ifdef _Inout_updates_bytes_opt_
-#undef _Inout_updates_bytes_opt_
-#endif
-#define _Inout_updates_bytes_opt_(s)
-#ifdef _Inout_updates_opt_z_
-#undef _Inout_updates_opt_z_
-#endif
-#define _Inout_updates_opt_z_(s)
-#ifdef _Out_writes_to_opt_
-#undef _Out_writes_to_opt_
-#endif
-#define _Out_writes_to_opt_(s,c)
-#ifdef _Out_writes_bytes_to_opt_
-#undef _Out_writes_bytes_to_opt_
-#endif
-#define _Out_writes_bytes_to_opt_(s,c)
-#ifdef _Out_writes_all_opt_
-#undef _Out_writes_all_opt_
-#endif
-#define _Out_writes_all_opt_(s)
-#ifdef _Out_writes_bytes_all_opt_
-#undef _Out_writes_bytes_all_opt_
-#endif
-#define _Out_writes_bytes_all_opt_(s)
-#ifdef _Inout_updates_to_opt_
-#undef _Inout_updates_to_opt_
-#endif
-#define _Inout_updates_to_opt_(s,c)
-#ifdef _Inout_updates_bytes_to_opt_
-#undef _Inout_updates_bytes_to_opt_
-#endif
-#define _Inout_updates_bytes_to_opt_(s,c)
-#ifdef _Inout_updates_all_opt_
-#undef _Inout_updates_all_opt_
-#endif
-#define _Inout_updates_all_opt_(s)
-#ifdef _Inout_updates_bytes_all_opt_
-#undef _Inout_updates_bytes_all_opt_
-#endif
-#define _Inout_updates_bytes_all_opt_(s)
-#ifdef _In_reads_to_ptr_opt_
-#undef _In_reads_to_ptr_opt_
-#endif
-#define _In_reads_to_ptr_opt_(p)
-#ifdef _In_reads_to_ptr_opt_z_
-#undef _In_reads_to_ptr_opt_z_
-#endif
-#define _In_reads_to_ptr_opt_z_(p)
-#ifdef _Out_writes_to_ptr_opt_
-#undef _Out_writes_to_ptr_opt_
-#endif
-#define _Out_writes_to_ptr_opt_(p)
-#ifdef _Out_writes_to_ptr_opt_z_
-#undef _Out_writes_to_ptr_opt_z_
-#endif
-#define _Out_writes_to_ptr_opt_z_(p)
-#ifdef _Outptr_
-#undef _Outptr_
-#endif
-#define _Outptr_
-#ifdef _Outptr_opt_
-#undef _Outptr_opt_
-#endif
-#define _Outptr_opt_
-#ifdef _Outptr_result_maybenull_
-#undef _Outptr_result_maybenull_
-#endif
-#define _Outptr_result_maybenull_
-#ifdef _Outptr_opt_result_maybenull_
-#undef _Outptr_opt_result_maybenull_
-#endif
-#define _Outptr_opt_result_maybenull_
-#ifdef _Outptr_result_z_
-#undef _Outptr_result_z_
-#endif
-#define _Outptr_result_z_
-#ifdef _Outptr_opt_result_z_
-#undef _Outptr_opt_result_z_
-#endif
-#define _Outptr_opt_result_z_
-#ifdef _Outptr_result_maybenull_z_
-#undef _Outptr_result_maybenull_z_
-#endif
-#define _Outptr_result_maybenull_z_
-#ifdef _Outptr_opt_result_maybenull_z_
-#undef _Outptr_opt_result_maybenull_z_
-#endif
-#define _Outptr_opt_result_maybenull_z_
-#ifdef _COM_Outptr_
-#undef _COM_Outptr_
-#endif
-#define _COM_Outptr_
-#ifdef _COM_Outptr_opt_
-#undef _COM_Outptr_opt_
-#endif
-#define _COM_Outptr_opt_
-#ifdef _COM_Outptr_result_maybenull_
-#undef _COM_Outptr_result_maybenull_
-#endif
-#define _COM_Outptr_result_maybenull_
-#ifdef _COM_Outptr_opt_result_maybenull_
-#undef _COM_Outptr_opt_result_maybenull_
-#endif
-#define _COM_Outptr_opt_result_maybenull_
-#ifdef _Outptr_result_buffer_
-#undef _Outptr_result_buffer_
-#endif
-#define _Outptr_result_buffer_(s)
-#ifdef _Outptr_result_buffer_maybenull_
-#undef _Outptr_result_buffer_maybenull_
-#endif
-#define _Outptr_result_buffer_maybenull_(s)
-#ifdef _Outptr_result_bytebuffer_
-#undef _Outptr_result_bytebuffer_
-#endif
-#define _Outptr_result_bytebuffer_(s)
-#ifdef _Outptr_result_bytebuffer_maybenull_
-#undef _Outptr_result_bytebuffer_maybenull_
-#endif
-#define _Outptr_result_bytebuffer_maybenull_(s)
-#ifdef _Outptr_opt_result_buffer_
-#undef _Outptr_opt_result_buffer_
-#endif
-#define _Outptr_opt_result_buffer_(s)
-#ifdef _Outptr_opt_result_buffer_maybenull_
-#undef _Outptr_opt_result_buffer_maybenull_
-#endif
-#define _Outptr_opt_result_buffer_maybenull_(s)
-#ifdef _Outptr_opt_result_bytebuffer_
-#undef _Outptr_opt_result_bytebuffer_
-#endif
-#define _Outptr_opt_result_bytebuffer_(s)
-#ifdef _Outptr_opt_result_bytebuffer_maybenull_
-#undef _Outptr_opt_result_bytebuffer_maybenull_
-#endif
-#define _Outptr_opt_result_bytebuffer_maybenull_(s)
-#ifdef _Outptr_result_buffer_to_
-#undef _Outptr_result_buffer_to_
-#endif
-#define _Outptr_result_buffer_to_(s,c)
-#ifdef _Outptr_result_bytebuffer_to_
-#undef _Outptr_result_bytebuffer_to_
-#endif
-#define _Outptr_result_bytebuffer_to_(s,c)
-#ifdef _Outptr_opt_result_buffer_to_
-#undef _Outptr_opt_result_buffer_to_
-#endif
-#define _Outptr_opt_result_buffer_to_(s,c)
-#ifdef _Outptr_opt_result_bytebuffer_to_
-#undef _Outptr_opt_result_bytebuffer_to_
-#endif
-#define _Outptr_opt_result_bytebuffer_to_(s,c)
-#ifdef _Ret_
-#undef _Ret_
-#endif
-#define _Ret_
-#ifdef _Ret_valid_
-#undef _Ret_valid_
-#endif
-#define _Ret_valid_
-#ifdef _Ret_z_
-#undef _Ret_z_
-#endif
-#define _Ret_z_
-#ifdef _Ret_writes_
-#undef _Ret_writes_
-#endif
-#define _Ret_writes_(s)
-#ifdef _Ret_writes_bytes_
-#undef _Ret_writes_bytes_
-#endif
-#define _Ret_writes_bytes_(s)
-#ifdef _Ret_writes_z_
-#undef _Ret_writes_z_
-#endif
-#define _Ret_writes_z_(s)
-#ifdef _Ret_writes_to_
-#undef _Ret_writes_to_
-#endif
-#define _Ret_writes_to_(s,c)
-#ifdef _Ret_writes_bytes_to_
-#undef _Ret_writes_bytes_to_
-#endif
-#define _Ret_writes_bytes_to_(s,c)
-#ifdef _Ret_writes_to_ptr_
-#undef _Ret_writes_to_ptr_
-#endif
-#define _Ret_writes_to_ptr_(p)
-#ifdef _Ret_writes_to_ptr_z_
-#undef _Ret_writes_to_ptr_z_
-#endif
-#define _Ret_writes_to_ptr_z_(p)
-#ifdef _Ret_writes_maybenull_
-#undef _Ret_writes_maybenull_
-#endif
-#define _Ret_writes_maybenull_(s)
-#ifdef _Ret_writes_bytes_maybenull_
-#undef _Ret_writes_bytes_maybenull_
-#endif
-#define _Ret_writes_bytes_maybenull_(s)
-#ifdef _Ret_writes_to_maybenull_
-#undef _Ret_writes_to_maybenull_
-#endif
-#define _Ret_writes_to_maybenull_(s,c)
-#ifdef _Ret_writes_bytes_to_maybenull_
-#undef _Ret_writes_bytes_to_maybenull_
-#endif
-#define _Ret_writes_bytes_to_maybenull_(s,c)
-#ifdef _Ret_writes_maybenull_z_
-#undef _Ret_writes_maybenull_z_
-#endif
-#define _Ret_writes_maybenull_z_(s)
-#ifdef _Ret_null_
-#undef _Ret_null_
-#endif
-#define _Ret_null_
-#ifdef _Ret_notnull_
-#undef _Ret_notnull_
-#endif
-#define _Ret_notnull_
-#ifdef _Ret_maybenull_
-#undef _Ret_maybenull_
-#endif
-#define _Ret_maybenull_
-#ifdef _Ret_maybenull_z_
-#undef _Ret_maybenull_z_
-#endif
-#define _Ret_maybenull_z_
-#ifdef _Field_size_
-#undef _Field_size_
-#endif
-#define _Field_size_(s)
-#ifdef _Field_size_opt_
-#undef _Field_size_opt_
-#endif
-#define _Field_size_opt_(s)
-#ifdef _Field_size_bytes_
-#undef _Field_size_bytes_
-#endif
-#define _Field_size_bytes_(s)
-#ifdef _Field_size_bytes_opt_
-#undef _Field_size_bytes_opt_
-#endif
-#define _Field_size_bytes_opt_(s)
-#ifdef _Field_size_part_
-#undef _Field_size_part_
-#endif
-#define _Field_size_part_(s,c)
-#ifdef _Field_size_part_opt_
-#undef _Field_size_part_opt_
-#endif
-#define _Field_size_part_opt_(s,c)
-#ifdef _Field_size_bytes_part_
-#undef _Field_size_bytes_part_
-#endif
-#define _Field_size_bytes_part_(s,c)
-#ifdef _Field_size_bytes_part_opt_
-#undef _Field_size_bytes_part_opt_
-#endif
-#define _Field_size_bytes_part_opt_(s,c)
-#ifdef _Field_size_full_
-#undef _Field_size_full_
-#endif
-#define _Field_size_full_(s)
-#ifdef _Field_size_full_opt_
-#undef _Field_size_full_opt_
-#endif
-#define _Field_size_full_opt_(s)
-#ifdef _Field_size_bytes_full_
-#undef _Field_size_bytes_full_
-#endif
-#define _Field_size_bytes_full_(s)
-#ifdef _Field_size_bytes_full_opt_
-#undef _Field_size_bytes_full_opt_
-#endif
-#define _Field_size_bytes_full_opt_(s)
-#ifdef _Printf_format_string_
-#undef _Printf_format_string_
-#endif
-#define _Printf_format_string_
-#ifdef _Scanf_format_string_
-#undef _Scanf_format_string_
-#endif
-#define _Scanf_format_string_
-#ifdef _Scanf_s_format_string_
-#undef _Scanf_s_format_string_
-#endif
-#define _Scanf_s_format_string_
-#ifdef _Printf_format_string_params_
-#undef _Printf_format_string_params_
-#endif
-#define _Printf_format_string_params_(x)
-#ifdef _Scanf_format_string_params_
-#undef _Scanf_format_string_params_
-#endif
-#define _Scanf_format_string_params_(x)
-#ifdef _Scanf_s_format_string_params_
-#undef _Scanf_s_format_string_params_
-#endif
-#define _Scanf_s_format_string_params_(x)
-#ifdef _In_range_
-#undef _In_range_
-#endif
-#define _In_range_(l,h)
-#ifdef _Out_range_
-#undef _Out_range_
-#endif
-#define _Out_range_(l,h)
-#ifdef _Ret_range_
-#undef _Ret_range_
-#endif
-#define _Ret_range_(l,h)
-#ifdef _Deref_in_range_
-#undef _Deref_in_range_
-#endif
-#define _Deref_in_range_(l,h)
-#ifdef _Deref_out_range_
-#undef _Deref_out_range_
-#endif
-#define _Deref_out_range_(l,h)
-#ifdef _Deref_inout_range_
-#undef _Deref_inout_range_
-#endif
-#define _Deref_inout_range_(l,h)
-#ifdef _Field_range_
-#undef _Field_range_
-#endif
-#define _Field_range_(l,h)
-#ifdef _Pre_equal_to_
-#undef _Pre_equal_to_
-#endif
-#define _Pre_equal_to_(e)
-#ifdef _Post_equal_to_
-#undef _Post_equal_to_
-#endif
-#define _Post_equal_to_(e)
-#ifdef _Struct_size_bytes_
-#undef _Struct_size_bytes_
-#endif
-#define _Struct_size_bytes_(s)
-#ifdef _Analysis_assume_
-#undef _Analysis_assume_
-#endif
-#define _Analysis_assume_
-#ifdef _Analysis_assume_nullterminated_
-#undef _Analysis_assume_nullterminated_
-#endif
-#define _Analysis_assume_nullterminated_(s)
-#ifdef _Analysis_mode_
-#undef _Analysis_mode_
-#endif
-#define _Analysis_mode_(m)
-#ifdef _Analysis_noreturn_
-#undef _Analysis_noreturn_
-#endif
-#define _Analysis_noreturn_
-#ifdef _Raises_SEH_exception_
-#undef _Raises_SEH_exception_
-#endif
-#define _Raises_SEH_exception_
-#ifdef _Maybe_raises_SEH_exception_
-#undef _Maybe_raises_SEH_exception_
-#endif
-#define _Maybe_raises_SEH_exception_
-#ifdef _Function_class_
-#undef _Function_class_
-#endif
-#define _Function_class_(n)
-#ifdef _Literal_
-#undef _Literal_
-#endif
-#define _Literal_
-#ifdef _Notliteral_
-#undef _Notliteral_
-#endif
-#define _Notliteral_
-#ifdef _Enum_is_bitflag_
-#undef _Enum_is_bitflag_
-#endif
-#define _Enum_is_bitflag_
-#ifdef _Strict_type_match_
-#undef _Strict_type_match_
-#endif
-#define _Strict_type_match_
-#ifdef _Points_to_data_
-#undef _Points_to_data_
-#endif
-#define _Points_to_data_
-#ifdef _Interlocked_operand_
-#undef _Interlocked_operand_
-#endif
-#define _Interlocked_operand_
-#ifdef _Outref_
-#undef _Outref_
-#endif
-#define _Outref_
-#ifdef _Outref_result_maybenull_
-#undef _Outref_result_maybenull_
-#endif
-#define _Outref_result_maybenull_
-#ifdef _Outref_result_buffer_
-#undef _Outref_result_buffer_
-#endif
-#define _Outref_result_buffer_(s)
-#ifdef _Outref_result_bytebuffer_
-#undef _Outref_result_bytebuffer_
-#endif
-#define _Outref_result_bytebuffer_(s)
-#ifdef _Outref_result_buffer_to_
-#undef _Outref_result_buffer_to_
-#endif
-#define _Outref_result_buffer_to_(s,c)
-#ifdef _Outref_result_bytebuffer_to_
-#undef _Outref_result_bytebuffer_to_
-#endif
-#define _Outref_result_bytebuffer_to_(s,c)
-#ifdef _Outref_result_buffer_all_
-#undef _Outref_result_buffer_all_
-#endif
-#define _Outref_result_buffer_all_(s)
-#ifdef _Outref_result_bytebuffer_all_
-#undef _Outref_result_bytebuffer_all_
-#endif
-#define _Outref_result_bytebuffer_all_(s)
-#ifdef _Outref_result_buffer_maybenull_
-#undef _Outref_result_buffer_maybenull_
-#endif
-#define _Outref_result_buffer_maybenull_(s)
-#ifdef _Outref_result_bytebuffer_maybenull_
-#undef _Outref_result_bytebuffer_maybenull_
-#endif
-#define _Outref_result_bytebuffer_maybenull_(s)
-#ifdef _Outref_result_buffer_to_maybenull_
-#undef _Outref_result_buffer_to_maybenull_
-#endif
-#define _Outref_result_buffer_to_maybenull_(s,c)
-#ifdef _Outref_result_bytebuffer_to_maybenull_
-#undef _Outref_result_bytebuffer_to_maybenull_
-#endif
-#define _Outref_result_bytebuffer_to_maybenull_(s,c)
-#ifdef _Outref_result_buffer_all_maybenull_
-#undef _Outref_result_buffer_all_maybenull_
-#endif
-#define _Outref_result_buffer_all_maybenull_(s)
-#ifdef _Outref_result_bytebuffer_all_maybenull_
-#undef _Outref_result_bytebuffer_all_maybenull_
-#endif
-#define _Outref_result_bytebuffer_all_maybenull_(s)
-#ifdef _In_defensive_
-#undef _In_defensive_
-#endif
-#define _In_defensive_(a)
-#ifdef _Out_defensive_
-#undef _Out_defensive_
-#endif
-#define _Out_defensive_(a)
-#ifdef _Inout_defensive_
-#undef _Inout_defensive_
-#endif
-#define _Inout_defensive_(a)
-#ifdef _Outptr_result_nullonfailure_
-#undef _Outptr_result_nullonfailure_
-#endif
-#define _Outptr_result_nullonfailure_
-#ifdef _Outptr_opt_result_nullonfailure_
-#undef _Outptr_opt_result_nullonfailure_
-#endif
-#define _Outptr_opt_result_nullonfailure_
-#ifdef _Outref_result_nullonfailure_
-#undef _Outref_result_nullonfailure_
-#endif
-#define _Outref_result_nullonfailure_
-#ifdef _Result_nullonfailure_
-#undef _Result_nullonfailure_
-#endif
-#define _Result_nullonfailure_
-#ifdef _Result_zeroonfailure_
-#undef _Result_zeroonfailure_
-#endif
-#define _Result_zeroonfailure_
-#ifdef _Acquires_nonreentrant_lock_
-#undef _Acquires_nonreentrant_lock_
-#endif
-#define _Acquires_nonreentrant_lock_(e)
-#ifdef _Releases_nonreentrant_lock_
-#undef _Releases_nonreentrant_lock_
-#endif
-#define _Releases_nonreentrant_lock_(e)
-#ifdef _Function_ignore_lock_checking_
-#undef _Function_ignore_lock_checking_
-#endif
-#define _Function_ignore_lock_checking_(e)
-#ifdef _Analysis_suppress_lock_checking_
-#undef _Analysis_suppress_lock_checking_
-#endif
-#define _Analysis_suppress_lock_checking_(e)
-#undef _Reserved_
-#define _Reserved_           _Pre_equal_to_(0) _Pre_ _Null_
-#undef _Pre_z_
-#define _Pre_z_              _Pre_ _Null_terminated_
-#undef _Post_z_
-#define _Post_z_             _Post_ _Null_terminated_
-#undef _Prepost_z_
-#define _Prepost_z_          _Pre_z_ _Post_z_
-#undef _Pre_null_
-#define _Pre_null_           _Pre_ _Null_
-#undef _Pre_maybenull_
-#define _Pre_maybenull_      _Pre_ _Maybenull_
-#undef _Pre_notnull_
-#define _Pre_notnull_        _Pre_ _Notnull_
-#undef _Pre_valid_
-#define _Pre_valid_          _Pre_notnull_ _Pre_ _Valid_
-#undef _Pre_opt_valid_
-#define _Pre_opt_valid_      _Pre_maybenull_ _Pre_ _Valid_
-#undef _Post_valid_
-#define _Post_valid_         _Post_ _Valid_
-#undef _Post_invalid_
-#define _Post_invalid_       _Post_ _Deref_ _Notvalid_
-#undef _Post_ptr_invalid_
-#define _Post_ptr_invalid_   _Post_ _Notvalid_
-#undef _Pre_readable_size_
-#define _Pre_readable_size_(s)      _Pre_ _Readable_elements_(s) _Pre_ _Valid_
-#undef _Pre_writable_size_
-#define _Pre_writable_size_(s)      _Pre_ _Writable_elements_(s)
-#undef _Pre_readable_byte_size_
-#define _Pre_readable_byte_size_(s) _Pre_ _Readable_bytes_(s) _Pre_ _Valid_
-#undef _Pre_writable_byte_size_
-#define _Pre_writable_byte_size_(s) _Pre_ _Writable_bytes_(s)
-#undef _Post_readable_size_
-#define _Post_readable_size_(s)     _Post_ _Readable_elements_(s) _Post_ _Valid_
-#undef _Post_writable_size_
-#define _Post_writable_size_(s)     _Post_ _Writable_elements_(s)
-#undef _Post_readable_byte_size_
-#define _Post_readable_byte_size_(s) _Post_ _Readable_bytes_(s) _Post_ _Valid_
-#undef _Post_writable_byte_size_
-#define _Post_writable_byte_size_(s) _Post_ _Writable_bytes_(s)
-#endif //FUNCTIONAL_FAKE_SAL_DEFINED
-
-/* Fake SAL end */
-
 typedef struct CString {
 	CString() {
 		this->_m_lp_cStorage = Q_nullptr;
 		this->_m_iLength = 0;
 	}
 
-	CString(_In_z_ char* _Which);
+	//CString(_In_z_ char* _Which);
 
 	CString(_In_z_ const char* _Which);
 
@@ -1294,13 +471,14 @@ private:
 int g_zeroTest = 0;
 //Once an assertion has failed, please consider using Q_GetAssertionFailureReason 
 //or just directly read reason from gs_lpszAssertionFailureReason using a debugger (when using Q_GetAssertionFailureReason, call it in a 'critical section' or so-called crash handler).
-static const char* gs_lpszAssertionFailureReason = Q_nullptr;
+static const char* gs_lpszAssertionFailureReason;
 
 const char* Q_GetAssertionFailureReason() {
-	//No reason, no assertions have failed.
-	if (!gs_lpszAssertionFailureReason) return "(null)";
-
 	return gs_lpszAssertionFailureReason;
+}
+
+void Q_SetAssertionFailureReason(_In_opt_ const char* _Reason) {
+	gs_lpszAssertionFailureReason = _Reason;
 }
 
 #define Q_ARRAYSIZE(_Array) (sizeof(_Array) / sizeof(_Array[0]))
@@ -1342,18 +520,20 @@ void* Q_memcpy(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size)
 }
 
 void* Q_memset(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size) functional_unsigned_size_t _Value, _In_ unsigned int _Size) {
-	auto dest = static_cast<char*>(_Dst);
+	Q_SLOWASSERT(_Dst && "Q_memset: Where should I store your values?");
 
-	Q_SLOWASSERT(dest && "Q_memset: Where should I store your values?");
-
-	if (dest) {
-		while (_Size) {
-			*dest++ = _Value;
-			--_Size;
+	if (_Dst) {
+		for (int idx = 0; idx < _Size && _Dst; idx++) {
+			((unsigned char*)_Dst)[idx] = _Value;
 		}
 	}
 
-	return dest;
+	//while (_Size && dest) {
+	//	*dest++ = _Value;
+	//	--_Size;
+	//}
+
+	return _Dst;
 }
 
 #ifndef FUNCTIONAL_NO_ALLOCATOR
@@ -1501,7 +681,7 @@ private:
 	CAllocatedSegment* _m_lpOldFreeSegment;
 } CAllocator;
 
-static CAllocator* gs_lpAllocator = CAllocator::Init();
+static CAllocator* gs_lpAllocator; // = CAllocator::Init();
 
 void* Q_malloc(_In_ functional_size_t _Size) {
 	if (!gs_lpAllocator || reinterpret_cast<functional_uintptr_t>(gs_lpAllocator) == 1) gs_lpAllocator = CAllocator::Init();
@@ -1558,6 +738,28 @@ void* Q_realloc(_In_ void* _Pointer, _In_ functional_size_t _Size) {
 
 #endif //FUNCTIONAL_NO_ALLOCATOR
 
+void* Q_memmove(void* _Dst, _In_reads_bytes_(_Size) const void* _Src, _In_ unsigned int _Size) {
+	char* dest = static_cast<char*>(_Dst);
+	const char* src = static_cast<const char*>(_Src);
+
+	char* tmp = static_cast<char*>(Q_malloc(_Size));
+	if (!tmp) {
+		return Q_nullptr;
+	}
+	else {
+		for (int idx = 0; idx < _Size; ++idx) {
+			tmp[idx] = src[idx];
+		}
+		for (int idx = 0; idx < _Size; ++idx) {
+			dest[idx] = tmp[idx];
+		}
+		Q_free(tmp);
+	}
+
+	return dest;
+}
+
+//We don't have any new operators since they're defined in CRT library. Instead we define our own which cannot be predefined by anything other because of the interface "INewWrapper"
 typedef struct INewWrapper {} INewWrapper;
 inline void* operator new(_In_opt_ functional_unsigned_size_t _Count, _In_ INewWrapper _Wrapper, _In_ void* _Pointer) {
 	(void)_Count;
@@ -1706,7 +908,7 @@ typedef struct CParameterPackExpander {
 #define RandomNumber(_Min, _Max) (FUNCTIONAL_abs((RandomNumber_Stage7(__COUNTER__ + _Min + _Max) % (_Max + 1 - _Min) + _Min)))
 
 //FIXME
-#define RandomSeed() (RandomNumber_Stage7(((int) (__TIMESTAMP__[9] - '0' + __TIMESTAMP__[10] - '0' + __TIMESTAMP__[12] - '0' + __TIMESTAMP__[13] - '0' + __TIMESTAMP__[15] - '0' + __TIMESTAMP__[16] - '0' + __TIMESTAMP__[18] - '0' + __TIMESTAMP__[19] - '0'))) / 16777215)
+#define RandomSeed() (FUNCTIONAL_abs(RandomNumber_Stage7(((int) (__TIMESTAMP__[9] - '0' + __TIMESTAMP__[10] - '0' + __TIMESTAMP__[12] - '0' + __TIMESTAMP__[13] - '0' + __TIMESTAMP__[15] - '0' + __TIMESTAMP__[16] - '0' + __TIMESTAMP__[18] - '0' + __TIMESTAMP__[19] - '0'))) / 16777215))
 
 #define Q_RAND_MAX 32767
 
@@ -1747,6 +949,7 @@ typedef struct CTrustedRandom {
 			result->_m_lp_iSeedTable[idx] = this->autorand(0, 70000);
 		}
 
+		result->generate_seed();
 		result->generate_seed();
 
 		return result;
@@ -1802,6 +1005,102 @@ namespace
 	functional
 #endif //FUNCTIONAL_DONT_USE_ANONYMOUS_NAMESPACE
 {
+	inline namespace arithmetic {
+		functional_size_t Q_pow(_In_ functional_size_t _Base, _In_ functional_size_t _Power) {
+			if (_Power == 0) return 1;
+			else if ((_Power % 2) == 0)
+				return Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
+			else
+				return _Base * Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
+		}
+
+		int Q_abs(_In_ functional_size_t _Number) {
+			return _Number < 0 ? -_Number : _Number;
+		}
+
+		inline int Q_add(_In_ int _From, _In_ int _What) {
+			int partialSum, carry;
+
+			do {
+				partialSum = _From ^ _What;
+				carry = (_From & _What) << 1;
+				_From = partialSum;
+				_What = carry;
+			} while (carry != 0);
+
+			return partialSum;
+		}
+
+		inline int Q_sub(_In_ int _From, _In_ int _What) {
+			return Q_add(_From, Q_add(~_What, 1));
+		}
+
+		inline int Q_mul(_In_ int _What, _In_ int _HowMuch) {
+			int result = 0;
+
+			for (int idx = 0; idx < _HowMuch; idx++) {
+				result = Q_add(result, _What);
+			}
+
+			return result;
+	}
+
+		inline int Q_shl(_In_ int _What, _In_ int _HowMuch) {
+			int multiplier = Q_pow(2, _HowMuch);
+
+			return Q_mul(_What, multiplier);
+		}
+
+		inline int Q_div(_In_ int _ToDivide, _In_ int _Divisor, _In_opt_ int* _Remainder = Q_nullptr) {
+			int quotient = 1;
+
+			Q_bool negative = Q_FALSE;
+			if ((_ToDivide > 0 && _Divisor < 0) || (_ToDivide < 0 && _Divisor > 0))
+				negative = Q_TRUE;
+
+			unsigned int tempdividend = Q_abs(_ToDivide);
+			unsigned int tempdivisor = Q_abs(_Divisor);
+
+			if (tempdivisor == tempdividend) {
+				if (_Remainder) {
+					*_Remainder = 0;
+				}
+
+				return negative ? -1 : 1;
+			} else if (tempdividend < tempdivisor) {
+				if (_Remainder) {
+					if (_ToDivide < 0) {
+						*_Remainder = Q_mul(tempdividend, negative ? -1 : 1);
+					} else {
+						*_Remainder = tempdividend;
+					}
+				}
+				return 0;
+			}
+
+			while (Q_shl(tempdivisor, 1) <= tempdividend) {
+				tempdivisor = Q_shl(tempdivisor, 1);
+				quotient = Q_shl(quotient, 1);
+			}
+
+			if (_ToDivide < 0) {
+				quotient = Q_mul(quotient, (negative ? -1 : 1));
+				quotient = Q_add(quotient, Q_div(Q_mul(Q_sub(tempdividend, tempdivisor), -1), _Divisor, _Remainder));
+			} else {
+				quotient = Q_mul(quotient, (negative ? -1 : 1));
+				quotient = Q_add(quotient, Q_div(Q_sub(tempdividend, tempdivisor), _Divisor, _Remainder));
+			}
+
+			return quotient;
+		}
+
+		inline int Q_shr(_In_ int _What, _In_ int _HowMuch) {
+			int divisor = Q_pow(2, _HowMuch);
+
+			return Q_div(_What, divisor);
+		}
+}
+
 	functional_size_t Q_strlen(_In_z_ const char* _Str) {
 		const char* p = const_cast<char*>(&_Str[0]);
 
@@ -1895,8 +1194,33 @@ namespace
 		return buffer;
 	}
 
-	int Q_abs(_In_ functional_size_t _Number) {
-		return _Number < 0 ? -_Number : _Number;
+	functional_size_t Q_tolower(_In_ functional_size_t _C) {
+		if (_C >= 'A' && _C <= 'Z') {
+			_C += ('a' - 'A');
+		}
+
+		return _C;
+	}
+
+	char Q_tolower(_In_ char _C) {
+		if (_C >= 'A' && _C <= 'Z') {
+			_C += ('a' - 'A');
+		}
+
+		return _C;
+	}
+
+	int Q_stricmp(_In_z_ const char* _Str1, _In_z_ const char* _Str2) {
+		Q_ASSERT(_Str1 && _Str2);
+
+		while (Q_tolower((unsigned char)*_Str1) == Q_tolower((unsigned char)*_Str2)) {
+			if (*_Str1 == '\0')
+				return 0;
+			_Str1++; _Str2++;
+		}
+
+		return (int)Q_tolower((unsigned char)*_Str1) -
+			(int)Q_tolower((unsigned char)*_Str2);
 	}
 
 	char* Q_itoa_internal(_Pre_notnull_ _Always_(_Post_z_) _Out_opt_ char* _Dest, _In_ functional_unsigned_size_t _Size, _In_ int _Value) {
@@ -1970,14 +1294,6 @@ namespace
 		}
 
 		return sign * a;
-	}
-
-	functional_size_t Q_pow(_In_ functional_size_t _Base, _In_ functional_size_t _Power) {
-		if (_Power == 0) return 1;
-		else if ((_Power % 2) == 0)
-			return Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
-		else
-			return _Base * Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
 	}
 
 	char* Q_ftoa(_In_ float _Value, _In_opt_ functional_size_t _Precision = 2) {
@@ -2238,13 +1554,13 @@ namespace
 	}
 }
 
-CString::CString(_In_z_ char* _Which) {
+/*CString::CString(_In_z_ char* _Which) {
 	Q_ASSERT(_Which && "Expected a non-null string at CString::CString(char*)");
 	this->_m_iLength = Q_strlen(_Which);
 	this->_m_lp_cStorage = reinterpret_cast<char*>(Q_malloc(this->_m_iLength + 1));
 	Q_strcpy(this->_m_lp_cStorage, _Which);
 	this->_m_lp_cStorage[this->_m_iLength + 1] = '\0';
-}
+}*/
 
 CString::CString(_In_z_ const char* _Which) {
 	Q_ASSERT(_Which && "Expected a non-null string at CString::CString(const char*)");
@@ -2382,11 +1698,8 @@ template<class _Ty> struct CUniquePointer {
 	}
 
 	~CUniquePointer() {
-		if (this->_m_lpStorage) {
-			this->_m_lpStorage->~_Ty();
-			Q_free(this->_m_lpStorage);
-			this->_m_lpStorage = Q_nullptr;
-		}
+		Q_delete(this->_m_lpStorage);
+		this->_m_lpStorage = Q_nullptr;
 	}
 
 	_Ty& operator*() const {
@@ -2404,11 +1717,15 @@ template<class _Ty> struct CUniquePointer {
 	}
 
 	void reset() {
-		if (this->_m_lpStorage) {
-			this->_m_lpStorage->~_Ty();
-			Q_free(this->_m_lpStorage);
-			this->_m_lpStorage = Q_nullptr;
-		}
+		Q_delete(this->_m_lpStorage);
+		this->_m_lpStorage = Q_nullptr;
+	}
+
+	_Ty* release() {
+		_Ty* result = this->_m_lpStorage;
+		this->_m_lpStorage = Q_nullptr;
+
+		return result;
 	}
 private:
 	_Ty* _m_lpStorage;
@@ -2420,9 +1737,13 @@ private:
 	void operator!=(CUniquePointer const&) const;
 };
 
-template<class _Ty, class... _Ts> CUniquePointer<_Ty> make_unique(_In_opt_ _Ts&&... _Args) {
-	return CUniquePointer<_Ty>(Q_new(_Ty)(forward<_Ts>(_Args)...));
+inline namespace NoCollision {
+	template<class _Ty, class... _Ts> CUniquePointer<_Ty> make_unique(_In_opt_ _Ts&&... _Args) {
+		return CUniquePointer<_Ty>(Q_new(_Ty)(forward<_Ts>(_Args)...));
+	}
 }
+
+template<class _Ty, class... _Ts> CUniquePointer<_Ty> MakeUnique(_In_opt_ _Ts&&... _Args) { return NoCollision::make_unique<_Ty>(_Args...); }
 
 //The CString type is defined after our namespace which is defined a bit later than CParameterPackExpander. (refer to Q_ASSERT)
 template<class _ResultType> _ResultType& CParameterPackExpander::at(_In_ functional_size_t _Where) {
@@ -2431,6 +1752,347 @@ template<class _ResultType> _ResultType& CParameterPackExpander::at(_In_ functio
 
 	return _Which;
 }
+
+//I call it slow since the internal maffs are going too slow compared to the native assembly
+typedef struct CSlowInteger {
+	CSlowInteger(_In_ int _Which) {
+		this->_m_iStorage = _Which;
+	}
+
+	CSlowInteger& operator=(_In_ int _Which) {
+		this->_m_iStorage = _Which;
+
+		return *this;
+	}
+
+	CSlowInteger& operator=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = _Rhs._m_iStorage;
+
+		return *this;
+	}
+
+	//div operators
+	CSlowInteger& operator/=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_div(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator/(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_div(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+	//div operators end
+
+	//mul operators
+	CSlowInteger& operator*=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_mul(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator*(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_mul(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+	//mul operators end
+
+	//sub operators
+	CSlowInteger& operator-=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_sub(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator-(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_sub(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+	//sub operators end
+
+	//add operators
+	CSlowInteger& operator+=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_add(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator+(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_add(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+	//add operators end
+	
+	//shift operators
+	CSlowInteger& operator>>=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_shr(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator>>(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_shr(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+
+	CSlowInteger& operator<<=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage = Q_shl(this->_m_iStorage, _Rhs._m_iStorage);
+
+		return *this;
+	}
+
+	CSlowInteger& operator<<(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_shl(result->_m_iStorage, _Rhs._m_iStorage);
+
+		return *result;
+	}
+	//shift operators end
+
+	//remainder
+	CSlowInteger& operator%(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		int remainder = 0;
+
+		Q_div(result->_m_iStorage, _Rhs._m_iStorage, &remainder);
+
+		result->_m_iStorage = remainder;
+
+		return *result;
+	}
+
+	CSlowInteger& operator%=(_In_ CSlowInteger _Rhs) {
+		int remainder = 0;
+
+		Q_div(this->_m_iStorage, _Rhs._m_iStorage, &remainder);
+
+		this->_m_iStorage = remainder;
+
+		return *this;
+	}
+	//remainder end
+
+	//and
+	CSlowInteger& operator&(_In_ int _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage &= _Rhs;
+
+		return *result;
+	}
+
+	CSlowInteger& operator&=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage &= _Rhs._m_iStorage;
+
+		return *this;
+	}
+	//and end
+
+	//or
+	CSlowInteger& operator|(_In_ int _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage |= _Rhs;
+
+		return *result;
+	}
+
+	CSlowInteger& operator|=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage |= _Rhs._m_iStorage;
+
+		return *this;
+	}
+	//or end
+
+	//Since we don't have implemented custom xor function, we'll use just default ^ operator.
+	//xor operators
+	CSlowInteger& operator^=(_In_ CSlowInteger _Rhs) {
+		this->_m_iStorage ^= _Rhs._m_iStorage;
+
+		return *this;
+	}
+
+	CSlowInteger& operator^(_In_ CSlowInteger _Rhs) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage ^= _Rhs._m_iStorage;
+
+		return *result;
+	}
+	//xor operators end
+
+	Q_bool operator==(_In_ CSlowInteger _Rhs) {
+		return this->_m_iStorage == _Rhs._m_iStorage ? Q_TRUE : Q_FALSE;
+	}
+
+	//generic int operators 
+	CSlowInteger& operator+(_In_ int _Which) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_add(result->_m_iStorage, _Which);
+
+		return *result;
+	}
+
+	CSlowInteger& operator-(_In_ int _Which) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_sub(result->_m_iStorage, _Which);
+
+		return *result;
+	}
+
+	CSlowInteger& operator*(_In_ int _Which) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_mul(result->_m_iStorage, _Which);
+
+		return *result;
+	}
+
+	CSlowInteger& operator/(_In_ int _Which) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_div(result->_m_iStorage, _Which);
+
+		return *result;
+	}
+
+	CSlowInteger& operator^(_In_ int _Which) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage ^= _Which;
+
+		return *result;
+	}
+
+	CSlowInteger& operator+=(_In_ int _Which) {
+		this->_m_iStorage = Q_add(this->_m_iStorage, _Which);
+
+		return *this;
+	}
+
+	CSlowInteger& operator-=(_In_ int _Which) {
+		this->_m_iStorage = Q_sub(this->_m_iStorage, _Which);
+
+		return *this;
+	}
+
+	CSlowInteger& operator*=(_In_ int _Which) {
+		this->_m_iStorage = Q_mul(this->_m_iStorage, _Which);
+
+		return *this;
+	}
+
+	CSlowInteger& operator/=(_In_ int _Which) {
+		this->_m_iStorage = Q_div(this->_m_iStorage, _Which);
+
+		return *this;
+	}
+
+	CSlowInteger& operator^=(_In_ int _Which) {
+		this->_m_iStorage ^= _Which;
+
+		return *this;
+	}
+
+	//shifting
+	CSlowInteger& operator>>(_In_ int _HowMuch) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_shr(result->_m_iStorage, _HowMuch);
+
+		return *result;
+	}
+
+	CSlowInteger& operator<<(_In_ int _HowMuch) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		result->_m_iStorage = Q_shl(result->_m_iStorage, _HowMuch);
+
+		return *result;
+	}
+
+	CSlowInteger& operator>>=(_In_ int _HowMuch) {
+		this->_m_iStorage = Q_shr(this->_m_iStorage, _HowMuch);
+
+		return *this;
+	}
+
+	CSlowInteger& operator<<=(_In_ int _HowMuch) {
+		this->_m_iStorage = Q_shl(this->_m_iStorage, _HowMuch);
+
+		return *this;
+	}
+	//shifting end
+
+	//remainder
+	CSlowInteger& operator%(_In_ int _HowMuch) {
+		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
+
+		int remainder = 0;
+
+		Q_div(result->_m_iStorage, _HowMuch, &remainder);
+
+		result->_m_iStorage = remainder;
+
+		return *result;
+	}
+
+	CSlowInteger& operator%=(_In_ int _HowMuch) {
+		int remainder = 0;
+
+		Q_div(this->_m_iStorage, _HowMuch, &remainder);
+
+		this->_m_iStorage = remainder;
+
+		return *this;
+	}
+	//remainder end
+
+	Q_bool operator==(_In_ int _Which) {
+		return this->_m_iStorage == _Which ? Q_TRUE : Q_FALSE;
+	}
+	//generic int operators end
+
+	//Unary plus/minus
+	CSlowInteger& operator+() {
+		return *this;
+	}
+	CSlowInteger& operator-() {
+		return *Q_new(CSlowInteger)(Q_mul(this->_m_iStorage, -1));
+	}
+	//Unary plus/minus end
+
+	//negotiate
+	CSlowInteger& operator~() {
+		return *Q_new(CSlowInteger)(~this->_m_iStorage);
+	}
+	//negotiate end
+
+	operator int() {
+		return this->_m_iStorage;
+	}
+protected:
+	int _m_iStorage;
+} CSlowInteger, Q_int;
 
 #else //__cplusplus
 #error C++ compiler required to compile functional.hpp.

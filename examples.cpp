@@ -57,3 +57,8 @@ void RandomExample() {
 	next_device.reset();
 	second_next_device.reset();
 }
+
+void SlowIntegerExample() {
+	CSlowInteger integer = 123; //native initializer
+	printf("%d %d %d %d\n", integer % 2, integer >> 36, integer << 2, integer ^ 50); //native operators
+}
