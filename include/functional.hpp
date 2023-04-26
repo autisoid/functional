@@ -332,39 +332,6 @@ template <class _Ty> constexpr remove_reference_t<_Ty>&& move(_Ty&& _Arg) {
 	return static_cast<remove_reference_t<_Ty>&&>(_Arg);
 }
 
-template <class _Ty, _Ty... _Values> struct integer_sequence {
-	typedef _Ty value_type;
-
-	static constexpr functional_unsigned_size_t size() noexcept {
-		return sizeof...(_Values);
-	}
-};
-
-template <functional_unsigned_size_t... _Values> struct index_sequence {
-	typedef functional_unsigned_size_t value_type;
-
-	static constexpr functional_unsigned_size_t size() noexcept {
-		return sizeof...(_Values);
-	}
-};
-
-template <class Sequence1, class Sequence2>
-struct _merge_and_renumber;
-
-template <size_t... I1, size_t... I2>
-struct _merge_and_renumber<index_sequence<I1...>, index_sequence<I2...>>
-	: index_sequence<I1..., (sizeof...(I1) + I2)...>
-{ };
-
-template <size_t N>
-struct make_index_sequence
-	: _merge_and_renumber<typename make_index_sequence<N / 2>::type,
-	typename make_index_sequence<N - N / 2>::type>
-{ };
-
-template<> struct make_index_sequence<0> : index_sequence<> { };
-template<> struct make_index_sequence<1> : index_sequence<0> { };
-
 template<class _Callee, class... _Ts> auto Q_bind(_Callee(*_Function)(_Ts... _Args)) {
 	return ([&](_Ts... _Placeholders) {
 		return _Function(_Placeholders...);
