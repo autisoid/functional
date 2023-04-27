@@ -1038,8 +1038,14 @@ namespace
 		inline int Q_mul(_In_ int _What, _In_ int _HowMuch) {
 			int result = 0;
 
-			for (int idx = 0; idx < _HowMuch; idx++) {
-				result = Q_add(result, _What);
+			if (_HowMuch > 0) {
+				for (int idx = 0; idx < _HowMuch; idx++) {
+					result = Q_add(result, _What);
+				}
+			} else {
+				for (int idx = _HowMuch; idx < 0; idx++) {
+					result = Q_sub(result, _What);
+				}
 			}
 
 			return result;
@@ -1098,6 +1104,14 @@ namespace
 			int divisor = Q_pow(2, _HowMuch);
 
 			return Q_div(_What, divisor);
+		}
+
+		inline int Q_negotiate(_In_ int _What) {
+			return Q_mul(Q_add(_What, 1), -1);
+		}
+
+		inline int Q_xor(_In_ int _What, _In_ int _HowMuch) {
+			return (_What | _HowMuch) & Q_negotiate(_What & _HowMuch);
 		}
 }
 
@@ -1924,7 +1938,9 @@ typedef struct CSlowInteger {
 	//Since we don't have implemented custom xor function, we'll use just default ^ operator.
 	//xor operators
 	CSlowInteger& operator^=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage ^= _Rhs._m_iStorage;
+		this->_m_iStorage = Q_xor(this->_m_iStorage, _Rhs._m_iStorage);
+		//old code
+		//this->_m_iStorage ^= _Rhs._m_iStorage;
 
 		return *this;
 	}
@@ -1932,7 +1948,8 @@ typedef struct CSlowInteger {
 	CSlowInteger& operator^(_In_ CSlowInteger _Rhs) {
 		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
 
-		result->_m_iStorage ^= _Rhs._m_iStorage;
+		result->_m_iStorage = Q_xor(result->_m_iStorage, _Rhs._m_iStorage);
+		//result->_m_iStorage ^= _Rhs._m_iStorage;
 
 		return *result;
 	}
@@ -1978,7 +1995,8 @@ typedef struct CSlowInteger {
 	CSlowInteger& operator^(_In_ int _Which) {
 		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
 
-		result->_m_iStorage ^= _Which;
+		result->_m_iStorage = Q_xor(result->_m_iStorage, _Which);
+		//result->_m_iStorage ^= _Which;
 
 		return *result;
 	}
@@ -2008,7 +2026,7 @@ typedef struct CSlowInteger {
 	}
 
 	CSlowInteger& operator^=(_In_ int _Which) {
-		this->_m_iStorage ^= _Which;
+		this->_m_iStorage = Q_xor(this->_m_iStorage, _Which);
 
 		return *this;
 	}
