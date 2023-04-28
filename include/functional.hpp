@@ -61,6 +61,27 @@
 
 #ifdef __cplusplus
 
+#if defined(__INTEL_COMPILER) || defined(__ICL) || defined(__ICC) || defined(__ECC)
+#define FUNCTIONAL_COMPILER_SUPPORTED "Intel"
+#elif defined __clang__ && !defined(__ibmxl__) && !defined(__CODEGEARC__)
+#define FUNCTIONAL_COMPILER_SUPPORTED Clang
+#elif defined(__GNUC__) && !defined(__ibmxl__)
+#define FUNCTIONAL_COMPILER_SUPPORTED "GCC"
+#elif defined _MSC_VER
+#if _MSC_VER >= 1929
+#define FUNCTIONAL_SUPPORTS_CPP20 1
+#endif //_MSC_VER
+#define FUNCTIONAL_COMPILER_SUPPORTED "MSVC"
+#else
+#warning "Unsupported compiler: possible loss of functionality/compilation errors"
+#endif
+
+#ifndef FUNCTIONAL_SUPPORTS_CPP20
+#if __cplusplus >= 202002L
+#define FUNCTIONAL_SUPPORTS_CPP20
+#endif //__cplusplus
+#endif //FUNCTIONAL_SUPPORTS_CPP20
+
 #ifdef __has_include
 #if !__has_include("functional_config.hpp")
 #define FUNCTIONAL_DONT_INCLUDE_CONFIG
@@ -332,6 +353,7 @@ template <class _Ty> constexpr remove_reference_t<_Ty>&& move(_Ty&& _Arg) {
 	return static_cast<remove_reference_t<_Ty>&&>(_Arg);
 }
 
+
 template<class _Callee, class... _Ts> auto Q_bind(_Callee(*_Function)(_Ts... _Args)) {
 	return ([&](_Ts... _Placeholders) {
 		return _Function(_Placeholders...);
@@ -490,7 +512,7 @@ void* Q_memset(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size)
 	Q_SLOWASSERT(_Dst && "Q_memset: Where should I store your values?");
 
 	if (_Dst) {
-		for (int idx = 0; idx < _Size && _Dst; idx++) {
+		for (unsigned int idx = 0; idx < _Size && _Dst; idx++) {
 			((unsigned char*)_Dst)[idx] = _Value;
 		}
 	}
@@ -714,10 +736,10 @@ void* Q_memmove(void* _Dst, _In_reads_bytes_(_Size) const void* _Src, _In_ unsig
 		return Q_nullptr;
 	}
 	else {
-		for (int idx = 0; idx < _Size; ++idx) {
+		for (unsigned int idx = 0; idx < _Size; ++idx) {
 			tmp[idx] = src[idx];
 		}
-		for (int idx = 0; idx < _Size; ++idx) {
+		for (unsigned int idx = 0; idx < _Size; ++idx) {
 			dest[idx] = tmp[idx];
 		}
 		Q_free(tmp);
@@ -954,7 +976,7 @@ private:
 
 	int _m_iSeed, _m_iInvocationCounter;
 
-	//Hardcoded to be with capacity of 256 integers!!! (Q_ARRAYSIZE(_m_a_iDefaultSeedTable))
+	//Hardcoded to be with capacity of Q_ARRAYSIZE(_m_a_iDefaultSeedTable) integers!!!
  	int* _m_lp_iSeedTable = Q_nullptr;
 
 	const static int _m_a_iDefaultSeedTable[1024];
@@ -1031,8 +1053,8 @@ namespace
 			if ((_ToDivide > 0 && _Divisor < 0) || (_ToDivide < 0 && _Divisor > 0))
 				negative = Q_TRUE;
 
-			unsigned int tempdividend = Q_abs(_ToDivide);
-			unsigned int tempdivisor = Q_abs(_Divisor);
+		    int tempdividend = Q_abs(_ToDivide);
+			int tempdivisor = Q_abs(_Divisor);
 
 			if (tempdivisor == tempdividend) {
 				if (_Remainder) {

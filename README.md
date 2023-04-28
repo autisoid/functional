@@ -5,7 +5,7 @@
 malloc, sprintf, rand and much other crt/stl/... overhead implementation in plain C++ without any dependencies (not even OS dependable)
 
 # Limits 
-Currently sprintf supports such format specifiers: %u, %i, %d, %f (no custom precision), %c, %x, %X, %p, %s.
+Currently sprintf supports such format specifiers: %u, %i, %d, %f (partially supporting custom precision), %c, %x, %X, %p, %s.
 
 # Quick example (rand)
 ```cpp

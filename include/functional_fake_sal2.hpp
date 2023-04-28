@@ -18,940 +18,737 @@
 #define _CRT_HYBRIDPATCHABLE
 #endif //_CRT_HYBRIDPATCHABLE
 
-#ifdef _When_
-#undef _When_
-#endif
+#ifndef _When_
 #define _When_(c,a)
-#ifdef _At_
-#undef _At_
 #endif
+#ifndef _At_
 #define _At_(t,a)
-#ifdef _At_buffer_
-#undef _At_buffer_
 #endif
+#ifndef _At_buffer_
 #define _At_buffer_(t,i,c,a)
-#ifdef _Group_
-#undef _Group_
 #endif
+#ifndef _Group_
 #define _Group_(a)
-#ifdef _Pre_
-#undef _Pre_
 #endif
+#ifndef _Pre_
 #define _Pre_
-#ifdef _Post_
-#undef _Post_
 #endif
+#ifndef _Post_
 #define _Post_
-#ifdef _Deref_
-#undef _Deref_
 #endif
+#ifndef _Deref_
 #define _Deref_
-#ifdef _Null_
-#undef _Null_
 #endif
+#ifndef _Null_
 #define _Null_
-#ifdef _Notnull_
-#undef _Notnull_
 #endif
+#ifndef _Notnull_
 #define _Notnull_
-#ifdef _Maybenull_
-#undef _Maybenull_
 #endif
+#ifndef _Maybenull_
 #define _Maybenull_
-#ifdef _Const_
-#undef _Const_
 #endif
+#ifndef _Const_
 #define _Const_
-#ifdef _Check_return_
-#undef _Check_return_
 #endif
+#ifndef _Check_return_
 #define _Check_return_
-#ifdef _Must_inspect_result_
-#undef _Must_inspect_result_
 #endif
+#ifndef _Must_inspect_result_
 #define _Must_inspect_result_
-#ifdef _Pre_satisfies_
-#undef _Pre_satisfies_
 #endif
+#ifndef _Pre_satisfies_
 #define _Pre_satisfies_(e)
-#ifdef _Post_satisfies_
-#undef _Post_satisfies_
 #endif
+#ifndef _Post_satisfies_
 #define _Post_satisfies_(e)
-#ifdef _Writable_elements_
-#undef _Writable_elements_
 #endif
+#ifndef _Writable_elements_
 #define _Writable_elements_(s)
-#ifdef _Writable_bytes_
-#undef _Writable_bytes_
 #endif
+#ifndef _Writable_bytes_
 #define _Writable_bytes_(s)
-#ifdef _Readable_elements_
-#undef _Readable_elements_
 #endif
+#ifndef _Readable_elements_
 #define _Readable_elements_(s)
-#ifdef _Readable_bytes_
-#undef _Readable_bytes_
 #endif
+#ifndef _Readable_bytes_
 #define _Readable_bytes_(s)
-#ifdef _Null_terminated_
-#undef _Null_terminated_
 #endif
+#ifndef _Null_terminated_
 #define _Null_terminated_
-#ifdef _NullNull_terminated_
-#undef _NullNull_terminated_
 #endif
+#ifndef _NullNull_terminated_
 #define _NullNull_terminated_
-#ifdef _Valid_
-#undef _Valid_
 #endif
+#ifndef _Valid_
 #define _Valid_
-#ifdef _Notvalid_
-#undef _Notvalid_
 #endif
+#ifndef _Notvalid_
 #define _Notvalid_
-#ifdef _Success_
-#undef _Success_
 #endif
+#ifndef _Success_
 #define _Success_(c)
-#ifdef _Return_type_success_
-#undef _Return_type_success_
 #endif
+#ifndef _Return_type_success_
 #define _Return_type_success_(c)
-#ifdef _On_failure_
-#undef _On_failure_
 #endif
+#ifndef _On_failure_
 #define _On_failure_(a)
-#ifdef _Always_
-#undef _Always_
 #endif
+#ifndef _Always_
 #define _Always_(a)
-#ifdef _Use_decl_annotations_
-#undef _Use_decl_annotations_
 #endif
+#ifndef _Use_decl_annotations_
 #define _Use_decl_annotations_
-#ifdef _Pre_defensive_
-#undef _Pre_defensive_
 #endif
+#ifndef _Pre_defensive_
 #define _Pre_defensive_
-#ifdef _Post_defensive_
-#undef _Post_defensive_
 #endif
+#ifndef _Post_defensive_
 #define _Post_defensive_
-#ifdef _Pre_unknown_
-#undef _Pre_unknown_
 #endif
+#ifndef _Pre_unknown_
 #define _Pre_unknown_
-#ifdef _Acquires_lock_
-#undef _Acquires_lock_
 #endif
+#ifndef _Acquires_lock_
 #define _Acquires_lock_(e)
-#ifdef _Releases_lock_
-#undef _Releases_lock_
 #endif
+#ifndef _Releases_lock_
 #define _Releases_lock_(e)
-#ifdef _Requires_lock_held_
-#undef _Requires_lock_held_
 #endif
+#ifndef _Requires_lock_held_
 #define _Requires_lock_held_(e)
-#ifdef _Requires_lock_not_held_
-#undef _Requires_lock_not_held_
 #endif
+#ifndef _Requires_lock_not_held_
 #define _Requires_lock_not_held_(e)
-#ifdef _Requires_no_locks_held_
-#undef _Requires_no_locks_held_
 #endif
+#ifndef _Requires_no_locks_held_
 #define _Requires_no_locks_held_
-#ifdef _Guarded_by_
-#undef _Guarded_by_
 #endif
+#ifndef _Guarded_by_
 #define _Guarded_by_(e)
-#ifdef _Write_guarded_by_
-#undef _Write_guarded_by_
 #endif
+#ifndef _Write_guarded_by_
 #define _Write_guarded_by_(e)
-#ifdef _Interlocked_
-#undef _Interlocked_
 #endif
+#ifndef _Interlocked_
 #define _Interlocked_
-#ifdef _Post_same_lock_
-#undef _Post_same_lock_
 #endif
+#ifndef _Post_same_lock_
 #define _Post_same_lock_(e1,e2)
-#ifdef _Benign_race_begin_
-#undef _Benign_race_begin_
 #endif
+#ifndef _Benign_race_begin_
 #define _Benign_race_begin_
-#ifdef _Benign_race_end_
-#undef _Benign_race_end_
 #endif
+#ifndef _Benign_race_end_
 #define _Benign_race_end_
-#ifdef _No_competing_thread_
-#undef _No_competing_thread_
 #endif
+#ifndef _No_competing_thread_
 #define _No_competing_thread_
-#ifdef _No_competing_thread_begin_
-#undef _No_competing_thread_begin_
 #endif
+#ifndef _No_competing_thread_begin_
 #define _No_competing_thread_begin_
-#ifdef _No_competing_thread_end_
-#undef _No_competing_thread_end_
 #endif
+#ifndef _No_competing_thread_end_
 #define _No_competing_thread_end_
-#ifdef _Acquires_shared_lock_
-#undef _Acquires_shared_lock_
 #endif
+#ifndef _Acquires_shared_lock_
 #define _Acquires_shared_lock_(e)
-#ifdef _Releases_shared_lock_
-#undef _Releases_shared_lock_
 #endif
+#ifndef _Releases_shared_lock_
 #define _Releases_shared_lock_(e)
-#ifdef _Requires_shared_lock_held_
-#undef _Requires_shared_lock_held_
 #endif
+#ifndef _Requires_shared_lock_held_
 #define _Requires_shared_lock_held_(e)
-#ifdef _Acquires_exclusive_lock_
-#undef _Acquires_exclusive_lock_
 #endif
+#ifndef _Acquires_exclusive_lock_
 #define _Acquires_exclusive_lock_(e)
-#ifdef _Releases_exclusive_lock_
-#undef _Releases_exclusive_lock_
 #endif
+#ifndef _Releases_exclusive_lock_
 #define _Releases_exclusive_lock_(e)
-#ifdef _Requires_exclusive_lock_held_
-#undef _Requires_exclusive_lock_held_
 #endif
+#ifndef _Requires_exclusive_lock_held_
 #define _Requires_exclusive_lock_held_(e)
-#ifdef _Has_lock_kind_
-#undef _Has_lock_kind_
 #endif
+#ifndef _Has_lock_kind_
 #define _Has_lock_kind_(n)
-#ifdef _Create_lock_level_
-#undef _Create_lock_level_
 #endif
+#ifndef _Create_lock_level_
 #define _Create_lock_level_(n)
-#ifdef _Has_lock_level_
-#undef _Has_lock_level_
 #endif
+#ifndef _Has_lock_level_
 #define _Has_lock_level_(n)
-#ifdef _Lock_level_order_
-#undef _Lock_level_order_
 #endif
+#ifndef _Lock_level_order_
 #define _Lock_level_order_(n1,n2)
-#ifdef _Analysis_assume_lock_acquired_
-#undef _Analysis_assume_lock_acquired_
 #endif
+#ifndef _Analysis_assume_lock_acquired_
 #define _Analysis_assume_lock_acquired_(e)
-#ifdef _Analysis_assume_lock_released_
-#undef _Analysis_assume_lock_released_
 #endif
+#ifndef _Analysis_assume_lock_released_
 #define _Analysis_assume_lock_released_(e)
-#ifdef _Analysis_assume_lock_held_
-#undef _Analysis_assume_lock_held_
 #endif
+#ifndef _Analysis_assume_lock_held_
 #define _Analysis_assume_lock_held_(e)
-#ifdef _Analysis_assume_lock_not_held_
-#undef _Analysis_assume_lock_not_held_
 #endif
+#ifndef _Analysis_assume_lock_not_held_
 #define _Analysis_assume_lock_not_held_(e)
-#ifdef _Analysis_assume_same_lock_
-#undef _Analysis_assume_same_lock_
 #endif
+#ifndef _Analysis_assume_same_lock_
 #define _Analysis_assume_same_lock_(e)
-#ifdef _In_
-#undef _In_
 #endif
+#ifndef _In_
 #define _In_
-#ifdef _Out_
-#undef _Out_
 #endif
+#ifndef _Out_
 #define _Out_
-#ifdef _Inout_
-#undef _Inout_
 #endif
+#ifndef _Inout_
 #define _Inout_
-#ifdef _In_z_
-#undef _In_z_
 #endif
+#ifndef _In_z_
 #define _In_z_
-#ifdef _Inout_z_
-#undef _Inout_z_
 #endif
+#ifndef _Inout_z_
 #define _Inout_z_
-#ifdef _In_reads_
-#undef _In_reads_
 #endif
+#ifndef _In_reads_
 #define _In_reads_(s)
-#ifdef _In_reads_bytes_
-#undef _In_reads_bytes_
 #endif
+#ifndef _In_reads_bytes_
 #define _In_reads_bytes_(s)
-#ifdef _In_reads_z_
-#undef _In_reads_z_
 #endif
+#ifndef _In_reads_z_
 #define _In_reads_z_(s)
-#ifdef _In_reads_or_z_
-#undef _In_reads_or_z_
 #endif
+#ifndef _In_reads_or_z_
 #define _In_reads_or_z_(s)
-#ifdef _Out_writes_
-#undef _Out_writes_
 #endif
+#ifndef _Out_writes_
 #define _Out_writes_(s)
-#ifdef _Out_writes_bytes_
-#undef _Out_writes_bytes_
 #endif
+#ifndef _Out_writes_bytes_
 #define _Out_writes_bytes_(s)
-#ifdef _Out_writes_z_
-#undef _Out_writes_z_
 #endif
+#ifndef _Out_writes_z_
 #define _Out_writes_z_(s)
-#ifdef _Inout_updates_
-#undef _Inout_updates_
 #endif
+#ifndef _Inout_updates_
 #define _Inout_updates_(s)
-#ifdef _Inout_updates_bytes_
-#undef _Inout_updates_bytes_
 #endif
+#ifndef _Inout_updates_bytes_
 #define _Inout_updates_bytes_(s)
-#ifdef _Inout_updates_z_
-#undef _Inout_updates_z_
 #endif
+#ifndef _Inout_updates_z_
 #define _Inout_updates_z_(s)
-#ifdef _Out_writes_to_
-#undef _Out_writes_to_
 #endif
+#ifndef _Out_writes_to_
 #define _Out_writes_to_(s,c)
-#ifdef _Out_writes_bytes_to_
-#undef _Out_writes_bytes_to_
 #endif
+#ifndef _Out_writes_bytes_to_
 #define _Out_writes_bytes_to_(s,c)
-#ifdef _Out_writes_all_
-#undef _Out_writes_all_
 #endif
+#ifndef _Out_writes_all_
 #define _Out_writes_all_(s)
-#ifdef _Out_writes_bytes_all_
-#undef _Out_writes_bytes_all_
 #endif
+#ifndef _Out_writes_bytes_all_
 #define _Out_writes_bytes_all_(s)
-#ifdef _Inout_updates_to_
-#undef _Inout_updates_to_
 #endif
+#ifndef _Inout_updates_to_
 #define _Inout_updates_to_(s,c)
-#ifdef _Inout_updates_bytes_to_
-#undef _Inout_updates_bytes_to_
 #endif
+#ifndef _Inout_updates_bytes_to_
 #define _Inout_updates_bytes_to_(s,c)
-#ifdef _Inout_updates_all_
-#undef _Inout_updates_all_
 #endif
+#ifndef _Inout_updates_all_
 #define _Inout_updates_all_(s)
-#ifdef _Inout_updates_bytes_all_
-#undef _Inout_updates_bytes_all_
 #endif
+#ifndef _Inout_updates_bytes_all_
 #define _Inout_updates_bytes_all_(s)
-#ifdef _In_reads_to_ptr_
-#undef _In_reads_to_ptr_
 #endif
+#ifndef _In_reads_to_ptr_
 #define _In_reads_to_ptr_(p)
-#ifdef _In_reads_to_ptr_z_
-#undef _In_reads_to_ptr_z_
 #endif
+#ifndef _In_reads_to_ptr_z_
 #define _In_reads_to_ptr_z_(p)
-#ifdef _Out_writes_to_ptr_
-#undef _Out_writes_to_ptr_
 #endif
+#ifndef _Out_writes_to_ptr_
 #define _Out_writes_to_ptr_(p)
-#ifdef _Out_writes_to_ptr_z_
-#undef _Out_writes_to_ptr_z_
 #endif
+#ifndef _Out_writes_to_ptr_z_
 #define _Out_writes_to_ptr_z_(p)
-#ifdef _In_opt_
-#undef _In_opt_
 #endif
+#ifndef _In_opt_
 #define _In_opt_
-#ifdef _Out_opt_
-#undef _Out_opt_
 #endif
+#ifndef _Out_opt_
 #define _Out_opt_
-#ifdef _Inout_opt_
-#undef _Inout_opt_
 #endif
+#ifndef _Inout_opt_
 #define _Inout_opt_
-#ifdef _In_opt_z_
-#undef _In_opt_z_
 #endif
+#ifndef _In_opt_z_
 #define _In_opt_z_
-#ifdef _Inout_opt_z_
-#undef _Inout_opt_z_
 #endif
+#ifndef _Inout_opt_z_
 #define _Inout_opt_z_
-#ifdef _In_reads_opt_
-#undef _In_reads_opt_
 #endif
+#ifndef _In_reads_opt_
 #define _In_reads_opt_(s)
-#ifdef _In_reads_opt_z_
-#undef _In_reads_opt_z_
 #endif
+#ifndef _In_reads_opt_z_
 #define _In_reads_opt_z_(s)
-#ifdef _In_reads_bytes_opt_
-#undef _In_reads_bytes_opt_
 #endif
+#ifndef _In_reads_bytes_opt_
 #define _In_reads_bytes_opt_(s)
-#ifdef _Out_writes_opt_
-#undef _Out_writes_opt_
 #endif
+#ifndef _Out_writes_opt_
 #define _Out_writes_opt_(s)
-#ifdef _Out_writes_bytes_opt_
-#undef _Out_writes_bytes_opt_
 #endif
+#ifndef _Out_writes_bytes_opt_
 #define _Out_writes_bytes_opt_(s)
-#ifdef _Out_writes_opt_z_
-#undef _Out_writes_opt_z_
 #endif
+#ifndef _Out_writes_opt_z_
 #define _Out_writes_opt_z_(s)
-#ifdef _Inout_updates_opt_
-#undef _Inout_updates_opt_
 #endif
+#ifndef _Inout_updates_opt_
 #define _Inout_updates_opt_(s)
-#ifdef _Inout_updates_bytes_opt_
-#undef _Inout_updates_bytes_opt_
 #endif
+#ifndef _Inout_updates_bytes_opt_
 #define _Inout_updates_bytes_opt_(s)
-#ifdef _Inout_updates_opt_z_
-#undef _Inout_updates_opt_z_
 #endif
+#ifndef _Inout_updates_opt_z_
 #define _Inout_updates_opt_z_(s)
-#ifdef _Out_writes_to_opt_
-#undef _Out_writes_to_opt_
 #endif
+#ifndef _Out_writes_to_opt_
 #define _Out_writes_to_opt_(s,c)
-#ifdef _Out_writes_bytes_to_opt_
-#undef _Out_writes_bytes_to_opt_
 #endif
+#ifndef _Out_writes_bytes_to_opt_
 #define _Out_writes_bytes_to_opt_(s,c)
-#ifdef _Out_writes_all_opt_
-#undef _Out_writes_all_opt_
 #endif
+#ifndef _Out_writes_all_opt_
 #define _Out_writes_all_opt_(s)
-#ifdef _Out_writes_bytes_all_opt_
-#undef _Out_writes_bytes_all_opt_
 #endif
+#ifndef _Out_writes_bytes_all_opt_
 #define _Out_writes_bytes_all_opt_(s)
-#ifdef _Inout_updates_to_opt_
-#undef _Inout_updates_to_opt_
 #endif
+#ifndef _Inout_updates_to_opt_
 #define _Inout_updates_to_opt_(s,c)
-#ifdef _Inout_updates_bytes_to_opt_
-#undef _Inout_updates_bytes_to_opt_
 #endif
+#ifndef _Inout_updates_bytes_to_opt_
 #define _Inout_updates_bytes_to_opt_(s,c)
-#ifdef _Inout_updates_all_opt_
-#undef _Inout_updates_all_opt_
 #endif
+#ifndef _Inout_updates_all_opt_
 #define _Inout_updates_all_opt_(s)
-#ifdef _Inout_updates_bytes_all_opt_
-#undef _Inout_updates_bytes_all_opt_
 #endif
+#ifndef _Inout_updates_bytes_all_opt_
 #define _Inout_updates_bytes_all_opt_(s)
-#ifdef _In_reads_to_ptr_opt_
-#undef _In_reads_to_ptr_opt_
 #endif
+#ifndef _In_reads_to_ptr_opt_
 #define _In_reads_to_ptr_opt_(p)
-#ifdef _In_reads_to_ptr_opt_z_
-#undef _In_reads_to_ptr_opt_z_
 #endif
+#ifndef _In_reads_to_ptr_opt_z_
 #define _In_reads_to_ptr_opt_z_(p)
-#ifdef _Out_writes_to_ptr_opt_
-#undef _Out_writes_to_ptr_opt_
 #endif
+#ifndef _Out_writes_to_ptr_opt_
 #define _Out_writes_to_ptr_opt_(p)
-#ifdef _Out_writes_to_ptr_opt_z_
-#undef _Out_writes_to_ptr_opt_z_
 #endif
+#ifndef _Out_writes_to_ptr_opt_z_
 #define _Out_writes_to_ptr_opt_z_(p)
-#ifdef _Outptr_
-#undef _Outptr_
 #endif
+#ifndef _Outptr_
 #define _Outptr_
-#ifdef _Outptr_opt_
-#undef _Outptr_opt_
 #endif
+#ifndef _Outptr_opt_
 #define _Outptr_opt_
-#ifdef _Outptr_result_maybenull_
-#undef _Outptr_result_maybenull_
 #endif
+#ifndef _Outptr_result_maybenull_
 #define _Outptr_result_maybenull_
-#ifdef _Outptr_opt_result_maybenull_
-#undef _Outptr_opt_result_maybenull_
 #endif
+#ifndef _Outptr_opt_result_maybenull_
 #define _Outptr_opt_result_maybenull_
-#ifdef _Outptr_result_z_
-#undef _Outptr_result_z_
 #endif
+#ifndef _Outptr_result_z_
 #define _Outptr_result_z_
-#ifdef _Outptr_opt_result_z_
-#undef _Outptr_opt_result_z_
 #endif
+#ifndef _Outptr_opt_result_z_
 #define _Outptr_opt_result_z_
-#ifdef _Outptr_result_maybenull_z_
-#undef _Outptr_result_maybenull_z_
 #endif
+#ifndef _Outptr_result_maybenull_z_
 #define _Outptr_result_maybenull_z_
-#ifdef _Outptr_opt_result_maybenull_z_
-#undef _Outptr_opt_result_maybenull_z_
 #endif
+#ifndef _Outptr_opt_result_maybenull_z_
 #define _Outptr_opt_result_maybenull_z_
-#ifdef _COM_Outptr_
-#undef _COM_Outptr_
 #endif
+#ifndef _COM_Outptr_
 #define _COM_Outptr_
-#ifdef _COM_Outptr_opt_
-#undef _COM_Outptr_opt_
 #endif
+#ifndef _COM_Outptr_opt_
 #define _COM_Outptr_opt_
-#ifdef _COM_Outptr_result_maybenull_
-#undef _COM_Outptr_result_maybenull_
 #endif
+#ifndef _COM_Outptr_result_maybenull_
 #define _COM_Outptr_result_maybenull_
-#ifdef _COM_Outptr_opt_result_maybenull_
-#undef _COM_Outptr_opt_result_maybenull_
 #endif
+#ifndef _COM_Outptr_opt_result_maybenull_
 #define _COM_Outptr_opt_result_maybenull_
-#ifdef _Outptr_result_buffer_
-#undef _Outptr_result_buffer_
 #endif
+#ifndef _Outptr_result_buffer_
 #define _Outptr_result_buffer_(s)
-#ifdef _Outptr_result_buffer_maybenull_
-#undef _Outptr_result_buffer_maybenull_
 #endif
+#ifndef _Outptr_result_buffer_maybenull_
 #define _Outptr_result_buffer_maybenull_(s)
-#ifdef _Outptr_result_bytebuffer_
-#undef _Outptr_result_bytebuffer_
 #endif
+#ifndef _Outptr_result_bytebuffer_
 #define _Outptr_result_bytebuffer_(s)
-#ifdef _Outptr_result_bytebuffer_maybenull_
-#undef _Outptr_result_bytebuffer_maybenull_
 #endif
+#ifndef _Outptr_result_bytebuffer_maybenull_
 #define _Outptr_result_bytebuffer_maybenull_(s)
-#ifdef _Outptr_opt_result_buffer_
-#undef _Outptr_opt_result_buffer_
 #endif
+#ifndef _Outptr_opt_result_buffer_
 #define _Outptr_opt_result_buffer_(s)
-#ifdef _Outptr_opt_result_buffer_maybenull_
-#undef _Outptr_opt_result_buffer_maybenull_
 #endif
+#ifndef _Outptr_opt_result_buffer_maybenull_
 #define _Outptr_opt_result_buffer_maybenull_(s)
-#ifdef _Outptr_opt_result_bytebuffer_
-#undef _Outptr_opt_result_bytebuffer_
 #endif
+#ifndef _Outptr_opt_result_bytebuffer_
 #define _Outptr_opt_result_bytebuffer_(s)
-#ifdef _Outptr_opt_result_bytebuffer_maybenull_
-#undef _Outptr_opt_result_bytebuffer_maybenull_
 #endif
+#ifndef _Outptr_opt_result_bytebuffer_maybenull_
 #define _Outptr_opt_result_bytebuffer_maybenull_(s)
-#ifdef _Outptr_result_buffer_to_
-#undef _Outptr_result_buffer_to_
 #endif
+#ifndef _Outptr_result_buffer_to_
 #define _Outptr_result_buffer_to_(s,c)
-#ifdef _Outptr_result_bytebuffer_to_
-#undef _Outptr_result_bytebuffer_to_
 #endif
+#ifndef _Outptr_result_bytebuffer_to_
 #define _Outptr_result_bytebuffer_to_(s,c)
-#ifdef _Outptr_opt_result_buffer_to_
-#undef _Outptr_opt_result_buffer_to_
 #endif
+#ifndef _Outptr_opt_result_buffer_to_
 #define _Outptr_opt_result_buffer_to_(s,c)
-#ifdef _Outptr_opt_result_bytebuffer_to_
-#undef _Outptr_opt_result_bytebuffer_to_
 #endif
+#ifndef _Outptr_opt_result_bytebuffer_to_
 #define _Outptr_opt_result_bytebuffer_to_(s,c)
-#ifdef _Ret_
-#undef _Ret_
 #endif
+#ifndef _Ret_
 #define _Ret_
-#ifdef _Ret_valid_
-#undef _Ret_valid_
 #endif
+#ifndef _Ret_valid_
 #define _Ret_valid_
-#ifdef _Ret_z_
-#undef _Ret_z_
 #endif
+#ifndef _Ret_z_
 #define _Ret_z_
-#ifdef _Ret_writes_
-#undef _Ret_writes_
 #endif
+#ifndef _Ret_writes_
 #define _Ret_writes_(s)
-#ifdef _Ret_writes_bytes_
-#undef _Ret_writes_bytes_
 #endif
+#ifndef _Ret_writes_bytes_
 #define _Ret_writes_bytes_(s)
-#ifdef _Ret_writes_z_
-#undef _Ret_writes_z_
 #endif
+#ifndef _Ret_writes_z_
 #define _Ret_writes_z_(s)
-#ifdef _Ret_writes_to_
-#undef _Ret_writes_to_
 #endif
+#ifndef _Ret_writes_to_
 #define _Ret_writes_to_(s,c)
-#ifdef _Ret_writes_bytes_to_
-#undef _Ret_writes_bytes_to_
 #endif
+#ifndef _Ret_writes_bytes_to_
 #define _Ret_writes_bytes_to_(s,c)
-#ifdef _Ret_writes_to_ptr_
-#undef _Ret_writes_to_ptr_
 #endif
+#ifndef _Ret_writes_to_ptr_
 #define _Ret_writes_to_ptr_(p)
-#ifdef _Ret_writes_to_ptr_z_
-#undef _Ret_writes_to_ptr_z_
 #endif
+#ifndef _Ret_writes_to_ptr_z_
 #define _Ret_writes_to_ptr_z_(p)
-#ifdef _Ret_writes_maybenull_
-#undef _Ret_writes_maybenull_
 #endif
+#ifndef _Ret_writes_maybenull_
 #define _Ret_writes_maybenull_(s)
-#ifdef _Ret_writes_bytes_maybenull_
-#undef _Ret_writes_bytes_maybenull_
 #endif
+#ifndef _Ret_writes_bytes_maybenull_
 #define _Ret_writes_bytes_maybenull_(s)
-#ifdef _Ret_writes_to_maybenull_
-#undef _Ret_writes_to_maybenull_
 #endif
+#ifndef _Ret_writes_to_maybenull_
 #define _Ret_writes_to_maybenull_(s,c)
-#ifdef _Ret_writes_bytes_to_maybenull_
-#undef _Ret_writes_bytes_to_maybenull_
 #endif
+#ifndef _Ret_writes_bytes_to_maybenull_
 #define _Ret_writes_bytes_to_maybenull_(s,c)
-#ifdef _Ret_writes_maybenull_z_
-#undef _Ret_writes_maybenull_z_
 #endif
+#ifndef _Ret_writes_maybenull_z_
 #define _Ret_writes_maybenull_z_(s)
-#ifdef _Ret_null_
-#undef _Ret_null_
 #endif
+#ifndef _Ret_null_
 #define _Ret_null_
-#ifdef _Ret_notnull_
-#undef _Ret_notnull_
 #endif
+#ifndef _Ret_notnull_
 #define _Ret_notnull_
-#ifdef _Ret_maybenull_
-#undef _Ret_maybenull_
 #endif
+#ifndef _Ret_maybenull_
 #define _Ret_maybenull_
-#ifdef _Ret_maybenull_z_
-#undef _Ret_maybenull_z_
 #endif
+#ifndef _Ret_maybenull_z_
 #define _Ret_maybenull_z_
-#ifdef _Field_size_
-#undef _Field_size_
 #endif
+#ifndef _Field_size_
 #define _Field_size_(s)
-#ifdef _Field_size_opt_
-#undef _Field_size_opt_
 #endif
+#ifndef _Field_size_opt_
 #define _Field_size_opt_(s)
-#ifdef _Field_size_bytes_
-#undef _Field_size_bytes_
 #endif
+#ifndef _Field_size_bytes_
 #define _Field_size_bytes_(s)
-#ifdef _Field_size_bytes_opt_
-#undef _Field_size_bytes_opt_
 #endif
+#ifndef _Field_size_bytes_opt_
 #define _Field_size_bytes_opt_(s)
-#ifdef _Field_size_part_
-#undef _Field_size_part_
 #endif
+#ifndef _Field_size_part_
 #define _Field_size_part_(s,c)
-#ifdef _Field_size_part_opt_
-#undef _Field_size_part_opt_
 #endif
+#ifndef _Field_size_part_opt_
 #define _Field_size_part_opt_(s,c)
-#ifdef _Field_size_bytes_part_
-#undef _Field_size_bytes_part_
 #endif
+#ifndef _Field_size_bytes_part_
 #define _Field_size_bytes_part_(s,c)
-#ifdef _Field_size_bytes_part_opt_
-#undef _Field_size_bytes_part_opt_
 #endif
+#ifndef _Field_size_bytes_part_opt_
 #define _Field_size_bytes_part_opt_(s,c)
-#ifdef _Field_size_full_
-#undef _Field_size_full_
 #endif
+#ifndef _Field_size_full_
 #define _Field_size_full_(s)
-#ifdef _Field_size_full_opt_
-#undef _Field_size_full_opt_
 #endif
+#ifndef _Field_size_full_opt_
 #define _Field_size_full_opt_(s)
-#ifdef _Field_size_bytes_full_
-#undef _Field_size_bytes_full_
 #endif
+#ifndef _Field_size_bytes_full_
 #define _Field_size_bytes_full_(s)
-#ifdef _Field_size_bytes_full_opt_
-#undef _Field_size_bytes_full_opt_
 #endif
+#ifndef _Field_size_bytes_full_opt_
 #define _Field_size_bytes_full_opt_(s)
-#ifdef _Printf_format_string_
-#undef _Printf_format_string_
 #endif
+#ifndef _Printf_format_string_
 #define _Printf_format_string_
-#ifdef _Scanf_format_string_
-#undef _Scanf_format_string_
 #endif
+#ifndef _Scanf_format_string_
 #define _Scanf_format_string_
-#ifdef _Scanf_s_format_string_
-#undef _Scanf_s_format_string_
 #endif
+#ifndef _Scanf_s_format_string_
 #define _Scanf_s_format_string_
-#ifdef _Printf_format_string_params_
-#undef _Printf_format_string_params_
 #endif
+#ifndef _Printf_format_string_params_
 #define _Printf_format_string_params_(x)
-#ifdef _Scanf_format_string_params_
-#undef _Scanf_format_string_params_
 #endif
+#ifndef _Scanf_format_string_params_
 #define _Scanf_format_string_params_(x)
-#ifdef _Scanf_s_format_string_params_
-#undef _Scanf_s_format_string_params_
 #endif
+#ifndef _Scanf_s_format_string_params_
 #define _Scanf_s_format_string_params_(x)
-#ifdef _In_range_
-#undef _In_range_
 #endif
+#ifndef _In_range_
 #define _In_range_(l,h)
-#ifdef _Out_range_
-#undef _Out_range_
 #endif
+#ifndef _Out_range_
 #define _Out_range_(l,h)
-#ifdef _Ret_range_
-#undef _Ret_range_
 #endif
+#ifndef _Ret_range_
 #define _Ret_range_(l,h)
-#ifdef _Deref_in_range_
-#undef _Deref_in_range_
 #endif
+#ifndef _Deref_in_range_
 #define _Deref_in_range_(l,h)
-#ifdef _Deref_out_range_
-#undef _Deref_out_range_
 #endif
+#ifndef _Deref_out_range_
 #define _Deref_out_range_(l,h)
-#ifdef _Deref_inout_range_
-#undef _Deref_inout_range_
 #endif
+#ifndef _Deref_inout_range_
 #define _Deref_inout_range_(l,h)
-#ifdef _Field_range_
-#undef _Field_range_
 #endif
+#ifndef _Field_range_
 #define _Field_range_(l,h)
-#ifdef _Pre_equal_to_
-#undef _Pre_equal_to_
 #endif
+#ifndef _Pre_equal_to_
 #define _Pre_equal_to_(e)
-#ifdef _Post_equal_to_
-#undef _Post_equal_to_
 #endif
+#ifndef _Post_equal_to_
 #define _Post_equal_to_(e)
-#ifdef _Struct_size_bytes_
-#undef _Struct_size_bytes_
 #endif
+#ifndef _Struct_size_bytes_
 #define _Struct_size_bytes_(s)
-#ifdef _Analysis_assume_
-#undef _Analysis_assume_
 #endif
+#ifndef _Analysis_assume_
 #define _Analysis_assume_
-#ifdef _Analysis_assume_nullterminated_
-#undef _Analysis_assume_nullterminated_
 #endif
+#ifndef _Analysis_assume_nullterminated_
 #define _Analysis_assume_nullterminated_(s)
-#ifdef _Analysis_mode_
-#undef _Analysis_mode_
 #endif
+#ifndef _Analysis_mode_
 #define _Analysis_mode_(m)
-#ifdef _Analysis_noreturn_
-#undef _Analysis_noreturn_
 #endif
+#ifndef _Analysis_noreturn_
 #define _Analysis_noreturn_
-#ifdef _Raises_SEH_exception_
-#undef _Raises_SEH_exception_
 #endif
+#ifndef _Raises_SEH_exception_
 #define _Raises_SEH_exception_
-#ifdef _Maybe_raises_SEH_exception_
-#undef _Maybe_raises_SEH_exception_
 #endif
+#ifndef _Maybe_raises_SEH_exception_
 #define _Maybe_raises_SEH_exception_
-#ifdef _Function_class_
-#undef _Function_class_
 #endif
+#ifndef _Function_class_
 #define _Function_class_(n)
-#ifdef _Literal_
-#undef _Literal_
 #endif
+#ifndef _Literal_
 #define _Literal_
-#ifdef _Notliteral_
-#undef _Notliteral_
 #endif
+#ifndef _Notliteral_
 #define _Notliteral_
-#ifdef _Enum_is_bitflag_
-#undef _Enum_is_bitflag_
 #endif
+#ifndef _Enum_is_bitflag_
 #define _Enum_is_bitflag_
-#ifdef _Strict_type_match_
-#undef _Strict_type_match_
 #endif
+#ifndef _Strict_type_match_
 #define _Strict_type_match_
-#ifdef _Points_to_data_
-#undef _Points_to_data_
 #endif
+#ifndef _Points_to_data_
 #define _Points_to_data_
-#ifdef _Interlocked_operand_
-#undef _Interlocked_operand_
 #endif
+#ifndef _Interlocked_operand_
 #define _Interlocked_operand_
-#ifdef _Outref_
-#undef _Outref_
 #endif
+#ifndef _Outref_
 #define _Outref_
-#ifdef _Outref_result_maybenull_
-#undef _Outref_result_maybenull_
 #endif
+#ifndef _Outref_result_maybenull_
 #define _Outref_result_maybenull_
-#ifdef _Outref_result_buffer_
-#undef _Outref_result_buffer_
 #endif
+#ifndef _Outref_result_buffer_
 #define _Outref_result_buffer_(s)
-#ifdef _Outref_result_bytebuffer_
-#undef _Outref_result_bytebuffer_
 #endif
+#ifndef _Outref_result_bytebuffer_
 #define _Outref_result_bytebuffer_(s)
-#ifdef _Outref_result_buffer_to_
-#undef _Outref_result_buffer_to_
 #endif
+#ifndef _Outref_result_buffer_to_
 #define _Outref_result_buffer_to_(s,c)
-#ifdef _Outref_result_bytebuffer_to_
-#undef _Outref_result_bytebuffer_to_
 #endif
+#ifndef _Outref_result_bytebuffer_to_
 #define _Outref_result_bytebuffer_to_(s,c)
-#ifdef _Outref_result_buffer_all_
-#undef _Outref_result_buffer_all_
 #endif
+#ifndef _Outref_result_buffer_all_
 #define _Outref_result_buffer_all_(s)
-#ifdef _Outref_result_bytebuffer_all_
-#undef _Outref_result_bytebuffer_all_
 #endif
+#ifndef _Outref_result_bytebuffer_all_
 #define _Outref_result_bytebuffer_all_(s)
-#ifdef _Outref_result_buffer_maybenull_
-#undef _Outref_result_buffer_maybenull_
 #endif
+#ifndef _Outref_result_buffer_maybenull_
 #define _Outref_result_buffer_maybenull_(s)
-#ifdef _Outref_result_bytebuffer_maybenull_
-#undef _Outref_result_bytebuffer_maybenull_
 #endif
+#ifndef _Outref_result_bytebuffer_maybenull_
 #define _Outref_result_bytebuffer_maybenull_(s)
-#ifdef _Outref_result_buffer_to_maybenull_
-#undef _Outref_result_buffer_to_maybenull_
 #endif
+#ifndef _Outref_result_buffer_to_maybenull_
 #define _Outref_result_buffer_to_maybenull_(s,c)
-#ifdef _Outref_result_bytebuffer_to_maybenull_
-#undef _Outref_result_bytebuffer_to_maybenull_
 #endif
+#ifndef _Outref_result_bytebuffer_to_maybenull_
 #define _Outref_result_bytebuffer_to_maybenull_(s,c)
-#ifdef _Outref_result_buffer_all_maybenull_
-#undef _Outref_result_buffer_all_maybenull_
 #endif
+#ifndef _Outref_result_buffer_all_maybenull_
 #define _Outref_result_buffer_all_maybenull_(s)
-#ifdef _Outref_result_bytebuffer_all_maybenull_
-#undef _Outref_result_bytebuffer_all_maybenull_
 #endif
+#ifndef _Outref_result_bytebuffer_all_maybenull_
 #define _Outref_result_bytebuffer_all_maybenull_(s)
-#ifdef _In_defensive_
-#undef _In_defensive_
 #endif
+#ifndef _In_defensive_
 #define _In_defensive_(a)
-#ifdef _Out_defensive_
-#undef _Out_defensive_
 #endif
+#ifndef _Out_defensive_
 #define _Out_defensive_(a)
-#ifdef _Inout_defensive_
-#undef _Inout_defensive_
 #endif
+#ifndef _Inout_defensive_
 #define _Inout_defensive_(a)
-#ifdef _Outptr_result_nullonfailure_
-#undef _Outptr_result_nullonfailure_
 #endif
+#ifndef _Outptr_result_nullonfailure_
 #define _Outptr_result_nullonfailure_
-#ifdef _Outptr_opt_result_nullonfailure_
-#undef _Outptr_opt_result_nullonfailure_
 #endif
+#ifndef _Outptr_opt_result_nullonfailure_
 #define _Outptr_opt_result_nullonfailure_
-#ifdef _Outref_result_nullonfailure_
-#undef _Outref_result_nullonfailure_
 #endif
+#ifndef _Outref_result_nullonfailure_
 #define _Outref_result_nullonfailure_
-#ifdef _Result_nullonfailure_
-#undef _Result_nullonfailure_
 #endif
+#ifndef _Result_nullonfailure_
 #define _Result_nullonfailure_
-#ifdef _Result_zeroonfailure_
-#undef _Result_zeroonfailure_
 #endif
+#ifndef _Result_zeroonfailure_
 #define _Result_zeroonfailure_
-#ifdef _Acquires_nonreentrant_lock_
-#undef _Acquires_nonreentrant_lock_
 #endif
+#ifndef _Acquires_nonreentrant_lock_
 #define _Acquires_nonreentrant_lock_(e)
-#ifdef _Releases_nonreentrant_lock_
-#undef _Releases_nonreentrant_lock_
 #endif
+#ifndef _Releases_nonreentrant_lock_
 #define _Releases_nonreentrant_lock_(e)
-#ifdef _Function_ignore_lock_checking_
-#undef _Function_ignore_lock_checking_
 #endif
+#ifndef _Function_ignore_lock_checking_
 #define _Function_ignore_lock_checking_(e)
-#ifdef _Analysis_suppress_lock_checking_
-#undef _Analysis_suppress_lock_checking_
 #endif
+#ifndef _Analysis_suppress_lock_checking_
 #define _Analysis_suppress_lock_checking_(e)
-#undef _Reserved_
-#define _Reserved_           _Pre_equal_to_(0) _Pre_ _Null_
-#undef _Pre_z_
-#define _Pre_z_              _Pre_ _Null_terminated_
-#undef _Post_z_
-#define _Post_z_             _Post_ _Null_terminated_
-#undef _Prepost_z_
-#define _Prepost_z_          _Pre_z_ _Post_z_
-#undef _Pre_null_
-#define _Pre_null_           _Pre_ _Null_
-#undef _Pre_maybenull_
-#define _Pre_maybenull_      _Pre_ _Maybenull_
-#undef _Pre_notnull_
-#define _Pre_notnull_        _Pre_ _Notnull_
-#undef _Pre_valid_
-#define _Pre_valid_          _Pre_notnull_ _Pre_ _Valid_
-#undef _Pre_opt_valid_
-#define _Pre_opt_valid_      _Pre_maybenull_ _Pre_ _Valid_
-#undef _Post_valid_
-#define _Post_valid_         _Post_ _Valid_
-#undef _Post_invalid_
-#define _Post_invalid_       _Post_ _Deref_ _Notvalid_
-#undef _Post_ptr_invalid_
-#define _Post_ptr_invalid_   _Post_ _Notvalid_
-#undef _Pre_readable_size_
-#define _Pre_readable_size_(s)      _Pre_ _Readable_elements_(s) _Pre_ _Valid_
-#undef _Pre_writable_size_
-#define _Pre_writable_size_(s)      _Pre_ _Writable_elements_(s)
-#undef _Pre_readable_byte_size_
+#endif
+#ifndef _Reserved_
+#define _Reserved_ _Pre_equal_to_(0) _Pre_ _Null_
+#endif
+#ifndef _Pre_z_
+#define _Pre_z_ _Pre_ _Null_terminated_
+#endif
+#ifndef _Post_z_
+#define _Post_z_ _Post_ _Null_terminated_
+#endif
+#ifndef _Prepost_z_
+#define _Prepost_z_ _Pre_z_ _Post_z_
+#endif
+#ifndef _Pre_null_
+#define _Pre_null_ _Pre_ _Null_
+#endif
+#ifndef _Pre_maybenull_
+#define _Pre_maybenull_ _Pre_ _Maybenull_
+#endif
+#ifndef _Pre_notnull_
+#define _Pre_notnull_ _Pre_ _Notnull_
+#endif
+#ifndef _Pre_valid_
+#define _Pre_valid_ _Pre_notnull_ _Pre_ _Valid_
+#endif
+#ifndef _Pre_opt_valid_
+#define _Pre_opt_valid_ _Pre_maybenull_ _Pre_ _Valid_
+#endif
+#ifndef _Post_valid_
+#define _Post_valid_ _Post_ _Valid_
+#endif
+#ifndef _Post_invalid_
+#define _Post_invalid_ _Post_ _Deref_ _Notvalid_
+#endif
+#ifndef _Post_ptr_invalid_
+#define _Post_ptr_invalid_ _Post_ _Notvalid_
+#endif
+#ifndef _Pre_readable_size_
+#define _Pre_readable_size_(s) _Pre_ _Readable_elements_(s) _Pre_ _Valid_
+#endif
+#ifndef _Pre_writable_size_
+#define _Pre_writable_size_(s) _Pre_ _Writable_elements_(s)
+#endif
+#ifndef _Pre_readable_byte_size_
 #define _Pre_readable_byte_size_(s) _Pre_ _Readable_bytes_(s) _Pre_ _Valid_
-#undef _Pre_writable_byte_size_
+#endif
+#ifndef _Pre_writable_byte_size_
 #define _Pre_writable_byte_size_(s) _Pre_ _Writable_bytes_(s)
-#undef _Post_readable_size_
-#define _Post_readable_size_(s)     _Post_ _Readable_elements_(s) _Post_ _Valid_
-#undef _Post_writable_size_
-#define _Post_writable_size_(s)     _Post_ _Writable_elements_(s)
-#undef _Post_readable_byte_size_
+#endif
+#ifndef _Post_readable_size_
+#define _Post_readable_size_(s) _Post_ _Readable_elements_(s) _Post_ _Valid_
+#endif
+#ifndef _Post_writable_size_
+#define _Post_writable_size_(s) _Post_ _Writable_elements_(s)
+#endif
+#ifndef _Post_readable_byte_size_
 #define _Post_readable_byte_size_(s) _Post_ _Readable_bytes_(s) _Post_ _Valid_
-#undef _Post_writable_byte_size_
+#endif
+#ifndef _Post_writable_byte_size_
 #define _Post_writable_byte_size_(s) _Post_ _Writable_bytes_(s)
+#endif
 
 #endif //FUNCTIONAL_FAKE_SAL2_HPP_GUARD
 
-#undef FUNCTIONAL_FAKE_SAL2_HPP_RECURSE_GUARD
+
 #endif //FUNCTIONAL_FAKE_SAL2_HPP_RECURSE_GUARD
