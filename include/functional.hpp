@@ -61,33 +61,6 @@
 
 #ifdef __cplusplus
 
-#if defined(__INTEL_COMPILER) || defined(__ICL) || defined(__ICC) || defined(__ECC)
-#define FUNCTIONAL_COMPILER_SUPPORTED "Intel"
-#elif defined __clang__ && !defined(__ibmxl__) && !defined(__CODEGEARC__)
-#define FUNCTIONAL_COMPILER_SUPPORTED Clang
-#elif defined(__GNUC__) && !defined(__ibmxl__)
-#define FUNCTIONAL_COMPILER_SUPPORTED "GCC"
-#elif defined _MSC_VER
-#if _MSC_VER >= 1929
-#define FUNCTIONAL_SUPPORTS_CPP20 1
-#endif //_MSC_VER
-#define FUNCTIONAL_COMPILER_SUPPORTED "MSVC"
-#else
-#warning "Unsupported compiler: possible loss of functionality/compilation errors"
-#endif
-
-#ifndef FUNCTIONAL_SUPPORTS_CPP20
-#if __cplusplus >= 202002L
-#define FUNCTIONAL_SUPPORTS_CPP20
-#endif //__cplusplus
-#endif //FUNCTIONAL_SUPPORTS_CPP20
-
-#ifdef __has_include
-#if !__has_include("functional_config.hpp")
-#define FUNCTIONAL_DONT_INCLUDE_CONFIG
-#endif //!__has_include("functional_config.hpp")
-#endif //__has_include
-
 #ifndef FUNCTIONAL_DONT_INCLUDE_CONFIG
 #include "functional_config.hpp"
 #endif //FUNCTIONAL_DONT_INCLUDE_CONFIG
@@ -221,10 +194,10 @@ template<class _Ty> struct remove_extent { typedef _Ty type; };
 template<class _Ty> struct remove_extent<_Ty[]> { typedef _Ty type; };
 template<class _Ty, functional_size_t _Size> struct remove_extent<_Ty[_Size]> { typedef _Ty type; };
 
-template<class _Ty> struct typeof { typedef _Ty type; };
+template<class _Ty> struct CTypeOf { typedef _Ty type; };
 
 template<class _Ty> struct add_pointer {
-	typedef typeof<typename remove_reference<_Ty>::type*> type;
+	typedef CTypeOf<typename remove_reference<_Ty>::type*> type;
 };
 
 template<class _Ty> struct remove_const { typedef _Ty type; };
@@ -233,26 +206,10 @@ template<class _Ty> struct remove_const<const _Ty> { typedef _Ty type; };
 template<class _Ty> struct remove_volatile { typedef _Ty type; };
 template<class _Ty> struct remove_volatile<volatile _Ty> { typedef _Ty type; };
 
-template<class _Ty> struct remove_cv { 
-	typedef _Ty type; 
-	
-	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
-};
-template<class _Ty> struct remove_cv<const _Ty> { 
-	typedef _Ty type; 
-
-	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
-};
-template<class _Ty> struct remove_cv<volatile _Ty> { 
-	typedef _Ty type; 
-
-	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
-};
-template<class _Ty> struct remove_cv<const volatile _Ty> {
-	typedef _Ty type; 	
-	
-	template <template <class> class _Fn> using _Apply = _Fn<_Ty>;
-};
+template<class _Ty> struct remove_cv { typedef _Ty type; };
+template<class _Ty> struct remove_cv<const _Ty> { typedef _Ty type; };
+template<class _Ty> struct remove_cv<volatile _Ty> { typedef _Ty type; };
+template<class _Ty> struct remove_cv<const volatile _Ty> { typedef _Ty type; };
 
 template<class _Ty> struct is_const : false_type {};
 template<class _Ty> struct is_const<const _Ty> : true_type {};
@@ -263,75 +220,15 @@ template<class _Ty> struct is_reference<_Ty&&> : true_type {};
 
 template<class _Ty> struct is_function : integral_constant<bool, !is_const<const _Ty>::value && !is_reference<_Ty>::value> {};
 
-//format me if indeed - was copy-pasted from msvc's std
-template <bool> struct _Select {
-	template <class _Ty1, class> using _Apply = _Ty1;
-};
-
-template <> struct _Select<false> {
-	template <class, class _Ty2> using _Apply = _Ty2;
-};
-
-template <functional_unsigned_size_t>
-struct _Make_signed2;
-
-template <> struct _Make_signed2<1> {
-	template <class> using _Apply = signed char;
-};
-
-template <> struct _Make_signed2<2> {
-	template <class> using _Apply = short;
-};
-
-template <> struct _Make_signed2<4> {
-	template <class _Ty> using _Apply = typename _Select<is_same_v<_Ty, long> || is_same_v<_Ty, unsigned long>>::template _Apply<long, int>;
-};
-
-template <> struct _Make_signed2<8> {
-	template <class>
-	using _Apply = long long;
-};
-
-template <class _Ty> using _Make_signed1 = typename _Make_signed2<sizeof(_Ty)>::template _Apply<_Ty>;
-
-template <class _Ty> struct make_signed {
-	typedef typename remove_cv<_Ty>::template _Apply<_Make_signed1> type;
-};
-
-template <class _Ty> using make_signed_t = typename make_signed<_Ty>::type;
-
-template <functional_unsigned_size_t> struct _Make_unsigned2;
-
-template <> struct _Make_unsigned2<1> {
-	template <class> using _Apply = unsigned char;
-};
-
-template <> struct _Make_unsigned2<2> {
-	template <class> using _Apply = unsigned short;
-};
-
-template <> struct _Make_unsigned2<4> {
-	template <class _Ty> using _Apply = typename _Select<is_same_v<_Ty, long> || is_same_v<_Ty, unsigned long>>::template _Apply<unsigned long, unsigned int>;
-};
-
-template <> struct _Make_unsigned2<8> {
-	template <class> using _Apply = unsigned long long;
-};
-
-template <class _Ty> using _Make_unsigned1 = typename _Make_unsigned2<sizeof(_Ty)>::template _Apply<_Ty>;
-
-template <class _Ty> struct make_unsigned {
-	typedef typename remove_cv<_Ty>::template _Apply<_Make_unsigned1> type;
-};
-
-template <class _Ty> using make_unsigned_t = typename make_unsigned<_Ty>::type;
-//format me end
-
 template<class _Ty> struct decay {
 private:
 	typedef typename remove_reference<_Ty>::type U;
 public:
-	typedef typename two_enable_if_t<is_array<U>::value, typename add_pointer<typename remove_extent<U>::type>::type, two_enable_if_t<is_function<U>::value, typename add_pointer<U>::type, typename remove_cv<U>::type>> type;
+	typedef
+	#if !defined(__clang__) && defined(_MSC_VER)
+	typename
+	#endif
+	 two_enable_if_t<is_array<U>::value, typename add_pointer<typename remove_extent<U>::type>::type, two_enable_if_t<is_function<U>::value, typename add_pointer<U>::type, typename remove_cv<U>::type>> type;
 };
 
 template<class _Ty> using decay_t = typename decay<_Ty>::type;
@@ -352,7 +249,6 @@ template <class _Ty> constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) {
 template <class _Ty> constexpr remove_reference_t<_Ty>&& move(_Ty&& _Arg) {
 	return static_cast<remove_reference_t<_Ty>&&>(_Arg);
 }
-
 
 template<class _Callee, class... _Ts> auto Q_bind(_Callee(*_Function)(_Ts... _Args)) {
 	return ([&](_Ts... _Placeholders) {
@@ -396,21 +292,6 @@ typedef struct CString {
 	}
 
 	~CString();
-
-	CString& operator=(_In_ CString _Rhs) {
-		this->_m_lp_cStorage = _Rhs._m_lp_cStorage;
-		this->_m_iLength = _Rhs._m_iLength;
-	}
-
-	CString& operator=(_In_ CString& _Rhs) {
-		this->_m_lp_cStorage = _Rhs._m_lp_cStorage;
-		this->_m_iLength = _Rhs._m_iLength;
-	}
-
-	CString& operator=(_In_ CString&& _Rhs) noexcept {
-		this->_m_lp_cStorage = _Rhs._m_lp_cStorage;
-		this->_m_iLength = _Rhs._m_iLength;
-	}
 
 	CString& operator=(_In_ const CString& _Rhs) {
 		this->_m_lp_cStorage = _Rhs._m_lp_cStorage;
@@ -460,7 +341,7 @@ private:
 int g_zeroTest = 0;
 //Once an assertion has failed, please consider using Q_GetAssertionFailureReason 
 //or just directly read reason from gs_lpszAssertionFailureReason using a debugger (when using Q_GetAssertionFailureReason, call it in a 'critical section' or so-called crash handler).
-static const char* gs_lpszAssertionFailureReason;
+static const char* gs_lpszAssertionFailureReason = Q_nullptr;
 
 const char* Q_GetAssertionFailureReason() {
 	return gs_lpszAssertionFailureReason;
@@ -509,20 +390,18 @@ void* Q_memcpy(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size)
 }
 
 void* Q_memset(_Out_writes_bytes_all_(_Size) void* _Dst, _In_reads_bytes_(_Size) functional_unsigned_size_t _Value, _In_ unsigned int _Size) {
-	Q_SLOWASSERT(_Dst && "Q_memset: Where should I store your values?");
+	auto dest = static_cast<char*>(_Dst);
 
-	if (_Dst) {
-		for (unsigned int idx = 0; idx < _Size && _Dst; idx++) {
-			((unsigned char*)_Dst)[idx] = _Value;
+	Q_SLOWASSERT(dest && "Q_memset: Where should I store your values?");
+
+	if (dest) {
+		while (_Size) {
+			*dest++ = _Value;
+			--_Size;
 		}
 	}
 
-	//while (_Size && dest) {
-	//	*dest++ = _Value;
-	//	--_Size;
-	//}
-
-	return _Dst;
+	return dest;
 }
 
 #ifndef FUNCTIONAL_NO_ALLOCATOR
@@ -670,7 +549,7 @@ private:
 	CAllocatedSegment* _m_lpOldFreeSegment;
 } CAllocator;
 
-static CAllocator* gs_lpAllocator; // = CAllocator::Init();
+static CAllocator* gs_lpAllocator = CAllocator::Init();
 
 void* Q_malloc(_In_ functional_size_t _Size) {
 	if (!gs_lpAllocator || reinterpret_cast<functional_uintptr_t>(gs_lpAllocator) == 1) gs_lpAllocator = CAllocator::Init();
@@ -727,27 +606,6 @@ void* Q_realloc(_In_ void* _Pointer, _In_ functional_size_t _Size) {
 
 #endif //FUNCTIONAL_NO_ALLOCATOR
 
-void* Q_memmove(void* _Dst, _In_reads_bytes_(_Size) const void* _Src, _In_ unsigned int _Size) {
-	char* dest = static_cast<char*>(_Dst);
-	const char* src = static_cast<const char*>(_Src);
-
-	char* tmp = static_cast<char*>(Q_malloc(_Size));
-	if (!tmp) {
-		return Q_nullptr;
-	}
-	else {
-		for (unsigned int idx = 0; idx < _Size; ++idx) {
-			tmp[idx] = src[idx];
-		}
-		for (unsigned int idx = 0; idx < _Size; ++idx) {
-			dest[idx] = tmp[idx];
-		}
-		Q_free(tmp);
-	}
-
-	return dest;
-}
-
 //We don't have any new operators since they're defined in CRT library. Instead we define our own which cannot be predefined by anything other because of the interface "INewWrapper"
 typedef struct INewWrapper {} INewWrapper;
 inline void* operator new(_In_opt_ functional_unsigned_size_t _Count, _In_ INewWrapper _Wrapper, _In_ void* _Pointer) {
@@ -801,11 +659,11 @@ template<class _Callee, class _ReturnType, class... _Ts> auto functional_cast_in
 }
 
 //Deduction is disabled here using enable_if and typeof - xWhitey
-template<class _ReturnType, class _Which, class = enable_if_t<true, _ReturnType>, class = typename typeof<_ReturnType>::type> _ReturnType* functional_cast(_Which&& c) {
+template<class _ReturnType, class _Which, class = enable_if_t<true, _ReturnType>, class = typename CTypeOf<_ReturnType>::type> _ReturnType* functional_cast(_Which&& c) {
 	return functional_cast_internal(forward<_Which>(c), (_ReturnType*)Q_nullptr);
 }
 
-template<class _To, class _From, class = enable_if_t<true, _To>, class = typeof<_To>> _To indirect_cast(_From&& _What) {
+template<class _To, class _From, class = enable_if_t<true, _To>, class = CTypeOf<_To>> _To indirect_cast(_From&& _What) {
 	return functional_cast<_To()>([_What]() { return _What; })();
 }
 
@@ -897,7 +755,7 @@ typedef struct CParameterPackExpander {
 #define RandomNumber(_Min, _Max) (FUNCTIONAL_abs((RandomNumber_Stage7(__COUNTER__ + _Min + _Max) % (_Max + 1 - _Min) + _Min)))
 
 //FIXME
-#define RandomSeed() (FUNCTIONAL_abs(RandomNumber_Stage7(((int) (__TIMESTAMP__[9] - '0' + __TIMESTAMP__[10] - '0' + __TIMESTAMP__[12] - '0' + __TIMESTAMP__[13] - '0' + __TIMESTAMP__[15] - '0' + __TIMESTAMP__[16] - '0' + __TIMESTAMP__[18] - '0' + __TIMESTAMP__[19] - '0'))) / 16777215))
+#define RandomSeed() (RandomNumber_Stage7(((int) (__TIMESTAMP__[9] - '0' + __TIMESTAMP__[10] - '0' + __TIMESTAMP__[12] - '0' + __TIMESTAMP__[13] - '0' + __TIMESTAMP__[15] - '0' + __TIMESTAMP__[16] - '0' + __TIMESTAMP__[18] - '0' + __TIMESTAMP__[19] - '0'))) / 16777215)
 
 #define Q_RAND_MAX 32767
 
@@ -939,7 +797,6 @@ typedef struct CTrustedRandom {
 		}
 
 		result->generate_seed();
-		result->generate_seed();
 
 		return result;
 	}
@@ -976,7 +833,7 @@ private:
 
 	int _m_iSeed, _m_iInvocationCounter;
 
-	//Hardcoded to be with capacity of Q_ARRAYSIZE(_m_a_iDefaultSeedTable) integers!!!
+	//Hardcoded to be with capacity of 256 integers!!! (Q_ARRAYSIZE(_m_a_iDefaultSeedTable))
  	int* _m_lp_iSeedTable = Q_nullptr;
 
 	const static int _m_a_iDefaultSeedTable[1024];
@@ -986,7 +843,7 @@ private:
 } CTrustedRandom;
 
 const int CTrustedRandom::_m_a_iDefaultSeedTable[1024] = { 
-	31106, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959, 44853, 19451, 5615, 5615, 54403, 22057, 58310, 52951, 38452, 27995, 66160, 43935, 6908, 20492, 33682, 36510, 62280, 54371, 53825, 47916, 41058, 22057, 37871, 34824, 49633, 35425, 45794, 18589, 916, 68616, 8454, 13061, 29941, 44341, 64022, 44383, 11686, 47498, 5120, 20678, 44882, 10364, 48352, 36333, 28628, 39558, 6908, 29806, 18526, 48163, 44848, 23598, 64022, 18403, 35892, 13823, 37578, 58454, 26653, 47557, 67119, 30449, 52986, 53638, 52788, 9383, 4996, 39558, 33019, 49556, 25998, 51322, 41144, 34988, 3667, 50086, 41743, 14928, 2084, 55251, 16700, 42160, 30253, 54371, 8959 
+	9883, 27502, 13369, 10559, 23661, 19154, 27586, 30916, 9657, 30876, 12698, 29917, 5843, 2659, 3405, 28142, 18780, 21198, 26677, 17408, 2316, 27467, 16469, 24084, 15791, 1540, 645, 11191, 13934, 7183, 20432, 25815, 14928, 19428, 12826, 31701, 513, 31765, 1029, 30171, 32465, 5689, 4118, 7536, 4863, 28201, 11028, 17226, 7992, 10608, 19889, 355, 2395, 15100, 29037, 13391, 8319, 18202, 13494, 7884, 567, 929, 2644, 27547, 25877, 26732, 30724, 398, 27756, 17422, 10339, 24035, 26970, 2242, 21518, 26832, 11526, 26017, 17928, 30815, 20519, 24, 32604, 30076, 5062, 24984, 15875, 22348, 16196, 28047, 27399, 26817, 8094, 29592, 13289, 3180, 3056, 12782, 21313, 29330, 4920, 23591, 19620, 30081, 14173, 31263, 8138, 4132, 22896, 13106, 14064, 8918, 15153, 22958, 5244, 31348, 14805, 19079, 992, 19894, 9734, 30029, 20928, 9407, 23852, 8284, 20311, 24306, 2027, 15699, 9495, 19208, 8684, 25031, 14479, 1375, 12001, 14392, 10642, 4245, 16579, 32067, 10902, 23638, 13150, 23834, 14426, 11890, 16656, 17714, 29900, 8755, 21710, 32315, 10537, 12781, 15719, 8789, 13158, 32470, 9741, 17281, 25295, 19224, 30737, 22101, 2030, 23077, 2542, 13557, 15278, 11083, 16265, 20030, 8640, 17032, 32695, 21828, 10814, 29599, 8960, 1279, 5774, 25451, 16291, 19521, 17802, 13172, 30425, 30187, 2781, 3008, 10078, 8545, 5552, 30444, 10542, 7995, 10887, 17531, 30348, 1598, 13413, 25965, 26185, 5258, 28983, 30483, 23363, 12564, 15727, 28707, 3372, 8535, 17136, 9224, 20109, 18247, 3882, 4219, 29706, 31623, 21638, 10583, 16615, 22491, 23300, 5801, 31947, 1504, 25634, 6407, 5828, 26107, 1537, 2084, 31116, 8847, 16835, 8097, 29963, 883, 22839, 3621, 24860, 5539, 10168, 31407, 23956, 31541, 594, 29739, 21377, 30607, 25383, 32580, 7087, 3032, 25617, 13946, 28273, 14252, 19593, 12404, 157, 12820, 14024, 8343, 29145, 11957, 4139, 26071, 28693, 839, 30940, 31693, 13401, 16713, 18095, 522, 15553, 6131, 12106, 19884, 26566, 4717, 23945, 14639, 21694, 1598, 30241, 9861, 11686, 17927, 20355, 26472, 15904, 27761, 24835, 32751, 31672, 21348, 11577, 30559, 25451, 2938, 11175, 11076, 20586, 26547, 30109, 22721, 12315, 29034, 14938, 20517, 14177, 22663, 15988, 1726, 32029, 13303, 27258, 31474, 7669, 9817, 11479, 7819, 19796, 15098, 13049, 15187, 30641, 3844, 15795, 1505, 23061, 6898, 5344, 21170, 13015, 12359, 24138, 8572, 28586, 32640, 23498, 29374, 31963, 14919, 21680, 7068, 6611, 9705, 11876, 3050, 22243, 12810, 30798, 14983, 8257, 26520, 28404, 11244, 31309, 17405, 14946, 18180, 21273, 21657, 27599, 27711, 3369, 9839, 32381, 738, 10103, 24094, 24545, 28833, 9914, 3092, 17156, 12143, 9192, 4350, 17193, 30101, 9210, 9858, 6576, 9217, 7407, 24625, 27450, 28385, 19475, 14519, 28686, 29809, 16769, 32597, 31676, 13841, 17639, 14738, 10240, 10139, 30601, 19757, 9960, 18675, 22409, 1621, 57, 32224, 2149, 19996, 15888, 6170, 1217, 9514, 19653, 18340, 7527, 13998, 4628, 25947, 27020, 6043, 32639, 19408, 3157, 1552, 9198, 12883, 29593, 15639, 153, 15952, 29673, 12435, 9511, 16095, 26061, 17780, 22295, 18070, 10321, 23085, 18528, 6049, 11456, 13160, 8532, 5653, 28592, 8440, 25034, 13442, 830, 28431, 23932, 3784, 3739, 30641, 22446, 10027, 26312, 26728, 529, 31145, 9373, 4154, 25318, 22922, 23568, 18904, 26214, 19770, 22708, 22040, 8034, 23636, 896, 15013, 31527, 1023, 21970, 30965, 27812, 17789, 32179, 12668, 21199, 769, 5981, 1824, 7748, 7873, 8187, 22252, 31279, 4173, 1455, 6152, 31853, 25631, 30937, 30697, 8430, 22899, 25239, 1733, 5214, 4697, 9352, 2122, 4612, 2568, 1494, 15503, 22762, 17781, 29043, 13643, 31806, 29220, 27042, 2885, 4856, 26430, 21690, 2059, 2749, 15589, 1830, 6119, 8707, 28100, 11953, 6159, 19831, 14058, 769, 21788, 3227, 10712, 24416, 19901, 29108, 9432, 10691, 3501, 24803, 9617, 11012, 13538, 19090, 10713, 15475, 32520, 25873, 4810, 28301, 24365, 10625, 15896, 3339, 958, 6130, 18849, 9247, 22194, 1736, 13638, 27386, 19973, 355, 22266, 14225, 8296, 31231, 21784, 24481, 12855, 21208, 6906, 10992, 20139, 658, 31687, 15063, 337, 22489, 30604, 2813, 9146, 8261, 22159, 28517, 29556, 13952, 3808, 13227, 17466, 15274, 10288, 16266, 8808, 32764, 4582, 25762, 31154, 24236, 8048, 14712, 5140, 4369, 7895, 9663, 1292, 15624, 15767, 982, 21768, 17046, 12205, 31633, 282, 3279, 19697, 31292, 8947, 27126, 6310, 27613, 21775, 12005, 26448, 6586, 10029, 10671, 5829, 21019, 14082, 10117, 3207, 15697, 16686, 4566, 28241, 1015, 15983, 26298, 18672, 10872, 24853, 4241, 6484, 17874, 1718, 24807, 27623, 28057, 29218, 12956, 1566, 3902, 24985, 30529, 20045, 1681, 21820, 13252, 26047, 8069, 6594, 12368, 10502, 25907, 27500, 24431, 2704, 25122, 17723, 16498, 31611, 13766, 12384, 16658, 22186, 9030, 10228, 25175, 537, 32131, 25833, 9401, 14957, 5205, 9793, 32646, 15568, 1815, 18813, 26499, 17147, 8295, 18265, 10454, 1428, 7975, 26806, 6179, 14523, 4295, 18392, 24310, 14048, 8391, 29137, 26465, 19927, 375, 15421, 10982, 25134, 20994, 9008, 26774, 23742, 9642, 17261, 1659, 5760, 4181, 17625, 8756, 13986, 23625, 18735, 5343, 14042, 19764, 13044, 28220, 507, 5231, 22702, 11022, 24774, 23171, 30801, 10949, 10498, 493, 32506, 10331, 25295, 1822, 30943, 14972, 22583, 8646, 15750, 7913, 17158, 2898, 11318, 21790, 3291, 3763, 3244, 19507, 21888, 17762, 26638, 10240, 13175, 9633, 28197, 24964, 25301, 17923, 15046, 18056, 22100, 31278, 3985, 7295, 24227, 11488, 21983, 27313, 23552, 6960, 31989, 12184, 11785, 21783, 2174, 1418, 21967, 10030, 25400, 31385, 32301, 20921, 18925, 8120, 24152, 12517, 25253, 4895, 10934, 14926, 21530, 2544, 2036, 29636, 29036, 7450, 13395, 18255, 19990, 23933, 23362, 22640, 20001, 29520, 18226, 16042, 1687, 19648, 26022, 18753, 571, 8154, 20873, 12354, 15991, 17323, 22469, 22211, 29846, 9382, 10769, 620, 819, 22598, 13322, 11319, 3057, 5108, 18054, 20083, 6509, 2858, 3365, 21519, 24945, 30937, 553, 3349, 30571, 22536, 21639, 19573, 797, 4030, 29757, 4868, 20373, 5667, 14567, 27588, 18016, 20194, 22157, 23910, 11003, 10449, 5312, 5389, 10890, 16084, 31717, 11861, 5068, 32767, 27856, 15508, 19279, 8954, 22165, 31072, 20448, 26794, 32410, 15441, 25414, 29197, 3825, 8199, 11056, 11622, 24293, 30831, 24171, 7835, 10707, 32323, 21080, 1755, 10300, 21456, 31902, 12163, 16151, 18172, 15644, 23619, 14700, 29831, 1058, 10365, 16414, 12433, 10464, 21485, 1033, 22621, 1054, 17039, 20044, 29012, 9006, 13245, 27368, 14669, 10015, 29848, 8587, 3083, 9268, 4522, 12454, 16903, 5524, 19402, 32453, 27760, 14659, 21567, 30240, 4721, 26705, 5160, 15981, 21426, 16210, 795, 18681, 5153, 11022, 20748, 25335, 5362, 11641, 26480, 16920, 7908, 28389, 1443, 16220, 8647, 28534, 31879, 13351, 27963, 27862, 19823, 11671, 26298, 20523, 12347, 27157, 24793, 14406, 17604, 21802, 30666, 29725, 29562, 30100, 5926, 380, 16715, 410, 3305, 25591, 6855, 3484, 19903, 26659, 23170, 2286, 20094, 9990, 3770, 31975, 5875, 24011, 16954, 16948, 29153, 28090, 19582, 8306, 24135, 6248, 27928, 3069 
 };
 
 namespace
@@ -994,116 +851,6 @@ namespace
 	functional
 #endif //FUNCTIONAL_DONT_USE_ANONYMOUS_NAMESPACE
 {
-	inline namespace arithmetic {
-		functional_size_t Q_pow(_In_ functional_size_t _Base, _In_ functional_size_t _Power) {
-			if (_Power == 0) return 1;
-			else if ((_Power % 2) == 0)
-				return Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
-			else
-				return _Base * Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
-		}
-
-		int Q_abs(_In_ functional_size_t _Number) {
-			return _Number < 0 ? -_Number : _Number;
-		}
-
-		inline int Q_add(_In_ int _From, _In_ int _What) {
-			int partialSum, carry;
-
-			do {
-				partialSum = _From ^ _What;
-				carry = (_From & _What) << 1;
-				_From = partialSum;
-				_What = carry;
-			} while (carry != 0);
-
-			return partialSum;
-		}
-
-		inline int Q_sub(_In_ int _From, _In_ int _What) {
-			return Q_add(_From, Q_add(~_What, 1));
-		}
-
-		inline int Q_mul(_In_ int _What, _In_ int _HowMuch) {
-			int result = 0;
-
-			if (_HowMuch > 0) {
-				for (int idx = 0; idx < _HowMuch; idx++) {
-					result = Q_add(result, _What);
-				}
-			} else {
-				for (int idx = _HowMuch; idx < 0; idx++) {
-					result = Q_sub(result, _What);
-				}
-			}
-
-			return result;
-	}
-
-		inline int Q_shl(_In_ int _What, _In_ int _HowMuch) {
-			int multiplier = Q_pow(2, _HowMuch);
-
-			return Q_mul(_What, multiplier);
-		}
-
-		inline int Q_div(_In_ int _ToDivide, _In_ int _Divisor, _In_opt_ int* _Remainder = Q_nullptr) {
-			int quotient = 1;
-
-			Q_bool negative = Q_FALSE;
-			if ((_ToDivide > 0 && _Divisor < 0) || (_ToDivide < 0 && _Divisor > 0))
-				negative = Q_TRUE;
-
-		    int tempdividend = Q_abs(_ToDivide);
-			int tempdivisor = Q_abs(_Divisor);
-
-			if (tempdivisor == tempdividend) {
-				if (_Remainder) {
-					*_Remainder = 0;
-				}
-
-				return negative ? -1 : 1;
-			} else if (tempdividend < tempdivisor) {
-				if (_Remainder) {
-					if (_ToDivide < 0) {
-						*_Remainder = Q_mul(tempdividend, negative ? -1 : 1);
-					} else {
-						*_Remainder = tempdividend;
-					}
-				}
-				return 0;
-			}
-
-			while (Q_shl(tempdivisor, 1) <= tempdividend) {
-				tempdivisor = Q_shl(tempdivisor, 1);
-				quotient = Q_shl(quotient, 1);
-			}
-
-			if (_ToDivide < 0) {
-				quotient = Q_mul(quotient, (negative ? -1 : 1));
-				quotient = Q_add(quotient, Q_div(Q_mul(Q_sub(tempdividend, tempdivisor), -1), _Divisor, _Remainder));
-			} else {
-				quotient = Q_mul(quotient, (negative ? -1 : 1));
-				quotient = Q_add(quotient, Q_div(Q_sub(tempdividend, tempdivisor), _Divisor, _Remainder));
-			}
-
-			return quotient;
-		}
-
-		inline int Q_shr(_In_ int _What, _In_ int _HowMuch) {
-			int divisor = Q_pow(2, _HowMuch);
-
-			return Q_div(_What, divisor);
-		}
-
-		inline int Q_negotiate(_In_ int _What) {
-			return Q_mul(Q_add(_What, 1), -1);
-		}
-
-		inline int Q_xor(_In_ int _What, _In_ int _HowMuch) {
-			return (_What | _HowMuch) & Q_negotiate(_What & _HowMuch);
-		}
-}
-
 	functional_size_t Q_strlen(_In_z_ const char* _Str) {
 		const char* p = const_cast<char*>(&_Str[0]);
 
@@ -1197,33 +944,8 @@ namespace
 		return buffer;
 	}
 
-	functional_size_t Q_tolower(_In_ functional_size_t _C) {
-		if (_C >= 'A' && _C <= 'Z') {
-			_C += ('a' - 'A');
-		}
-
-		return _C;
-	}
-
-	char Q_tolower(_In_ char _C) {
-		if (_C >= 'A' && _C <= 'Z') {
-			_C += ('a' - 'A');
-		}
-
-		return _C;
-	}
-
-	int Q_stricmp(_In_z_ const char* _Str1, _In_z_ const char* _Str2) {
-		Q_ASSERT(_Str1 && _Str2);
-
-		while (Q_tolower((unsigned char)*_Str1) == Q_tolower((unsigned char)*_Str2)) {
-			if (*_Str1 == '\0')
-				return 0;
-			_Str1++; _Str2++;
-		}
-
-		return (int)Q_tolower((unsigned char)*_Str1) -
-			(int)Q_tolower((unsigned char)*_Str2);
+	int Q_abs(_In_ functional_size_t _Number) {
+		return _Number < 0 ? -_Number : _Number;
 	}
 
 	char* Q_itoa_internal(_Pre_notnull_ _Always_(_Post_z_) _Out_opt_ char* _Dest, _In_ functional_unsigned_size_t _Size, _In_ int _Value) {
@@ -1297,6 +1019,14 @@ namespace
 		}
 
 		return sign * a;
+	}
+
+	functional_size_t Q_pow(_In_ functional_size_t _Base, _In_ functional_size_t _Power) {
+		if (_Power == 0) return 1;
+		else if ((_Power % 2) == 0)
+			return Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
+		else
+			return _Base * Q_pow(_Base, _Power / 2) * Q_pow(_Base, _Power / 2);
 	}
 
 	char* Q_ftoa(_In_ float _Value, _In_opt_ functional_size_t _Precision = 2) {
@@ -1672,7 +1402,7 @@ CString& CString::operator+(_In_ char _Character) {
 template<class... _Ts> _Success_(return != Q_nullptr) CString& CString::Format(_Printf_format_string_ _In_z_ const char* const _Format, _In_opt_ _Ts... _Args) {
 	CString* result = Q_new(CString)();
 	result->_m_lp_cStorage = reinterpret_cast<char*>(Q_malloc(2048));
-	result->_m_iLength = Q_sprintf(result->_m_lp_cStorage, _Format, _Args...) + 1;
+	result->_m_iLength = sprintf(result->_m_lp_cStorage, _Format, _Args...) + 1;
 	Q_realloc(result->_m_lp_cStorage, result->_m_iLength);
 
 	return *result;
@@ -1723,13 +1453,6 @@ template<class _Ty> struct CUniquePointer {
 		Q_delete(this->_m_lpStorage);
 		this->_m_lpStorage = Q_nullptr;
 	}
-
-	_Ty* release() {
-		_Ty* result = this->_m_lpStorage;
-		this->_m_lpStorage = Q_nullptr;
-
-		return result;
-	}
 private:
 	_Ty* _m_lpStorage;
 
@@ -1740,13 +1463,9 @@ private:
 	void operator!=(CUniquePointer const&) const;
 };
 
-inline namespace NoCollision {
-	template<class _Ty, class... _Ts> CUniquePointer<_Ty> make_unique(_In_opt_ _Ts&&... _Args) {
-		return CUniquePointer<_Ty>(Q_new(_Ty)(forward<_Ts>(_Args)...));
-	}
+template<class _Ty, class... _Ts> CUniquePointer<_Ty> make_unique(_In_opt_ _Ts&&... _Args) {
+	return CUniquePointer<_Ty>(Q_new(_Ty)(forward<_Ts>(_Args)...));
 }
-
-template<class _Ty, class... _Ts> CUniquePointer<_Ty> MakeUnique(_In_opt_ _Ts&&... _Args) { return NoCollision::make_unique<_Ty>(_Args...); }
 
 //The CString type is defined after our namespace which is defined a bit later than CParameterPackExpander. (refer to Q_ASSERT)
 template<class _ResultType> _ResultType& CParameterPackExpander::at(_In_ functional_size_t _Where) {
@@ -1755,351 +1474,6 @@ template<class _ResultType> _ResultType& CParameterPackExpander::at(_In_ functio
 
 	return _Which;
 }
-
-//I call it slow since the internal maffs are going too slow compared to the native assembly
-typedef struct CSlowInteger {
-	CSlowInteger(_In_ int _Which) {
-		this->_m_iStorage = _Which;
-	}
-
-	CSlowInteger& operator=(_In_ int _Which) {
-		this->_m_iStorage = _Which;
-
-		return *this;
-	}
-
-	CSlowInteger& operator=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = _Rhs._m_iStorage;
-
-		return *this;
-	}
-
-	//div operators
-	CSlowInteger& operator/=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_div(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator/(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_div(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-	//div operators end
-
-	//mul operators
-	CSlowInteger& operator*=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_mul(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator*(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_mul(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-	//mul operators end
-
-	//sub operators
-	CSlowInteger& operator-=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_sub(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator-(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_sub(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-	//sub operators end
-
-	//add operators
-	CSlowInteger& operator+=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_add(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator+(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_add(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-	//add operators end
-	
-	//shift operators
-	CSlowInteger& operator>>=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_shr(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator>>(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_shr(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-
-	CSlowInteger& operator<<=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_shl(this->_m_iStorage, _Rhs._m_iStorage);
-
-		return *this;
-	}
-
-	CSlowInteger& operator<<(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_shl(result->_m_iStorage, _Rhs._m_iStorage);
-
-		return *result;
-	}
-	//shift operators end
-
-	//remainder
-	CSlowInteger& operator%(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		int remainder = 0;
-
-		Q_div(result->_m_iStorage, _Rhs._m_iStorage, &remainder);
-
-		result->_m_iStorage = remainder;
-
-		return *result;
-	}
-
-	CSlowInteger& operator%=(_In_ CSlowInteger _Rhs) {
-		int remainder = 0;
-
-		Q_div(this->_m_iStorage, _Rhs._m_iStorage, &remainder);
-
-		this->_m_iStorage = remainder;
-
-		return *this;
-	}
-	//remainder end
-
-	//and
-	CSlowInteger& operator&(_In_ int _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage &= _Rhs;
-
-		return *result;
-	}
-
-	CSlowInteger& operator&=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage &= _Rhs._m_iStorage;
-
-		return *this;
-	}
-	//and end
-
-	//or
-	CSlowInteger& operator|(_In_ int _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage |= _Rhs;
-
-		return *result;
-	}
-
-	CSlowInteger& operator|=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage |= _Rhs._m_iStorage;
-
-		return *this;
-	}
-	//or end
-
-	//Since we don't have implemented custom xor function, we'll use just default ^ operator.
-	//xor operators
-	CSlowInteger& operator^=(_In_ CSlowInteger _Rhs) {
-		this->_m_iStorage = Q_xor(this->_m_iStorage, _Rhs._m_iStorage);
-		//old code
-		//this->_m_iStorage ^= _Rhs._m_iStorage;
-
-		return *this;
-	}
-
-	CSlowInteger& operator^(_In_ CSlowInteger _Rhs) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_xor(result->_m_iStorage, _Rhs._m_iStorage);
-		//result->_m_iStorage ^= _Rhs._m_iStorage;
-
-		return *result;
-	}
-	//xor operators end
-
-	Q_bool operator==(_In_ CSlowInteger _Rhs) {
-		return this->_m_iStorage == _Rhs._m_iStorage ? Q_TRUE : Q_FALSE;
-	}
-
-	//generic int operators 
-	CSlowInteger& operator+(_In_ int _Which) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_add(result->_m_iStorage, _Which);
-
-		return *result;
-	}
-
-	CSlowInteger& operator-(_In_ int _Which) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_sub(result->_m_iStorage, _Which);
-
-		return *result;
-	}
-
-	CSlowInteger& operator*(_In_ int _Which) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_mul(result->_m_iStorage, _Which);
-
-		return *result;
-	}
-
-	CSlowInteger& operator/(_In_ int _Which) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_div(result->_m_iStorage, _Which);
-
-		return *result;
-	}
-
-	CSlowInteger& operator^(_In_ int _Which) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_xor(result->_m_iStorage, _Which);
-		//result->_m_iStorage ^= _Which;
-
-		return *result;
-	}
-
-	CSlowInteger& operator+=(_In_ int _Which) {
-		this->_m_iStorage = Q_add(this->_m_iStorage, _Which);
-
-		return *this;
-	}
-
-	CSlowInteger& operator-=(_In_ int _Which) {
-		this->_m_iStorage = Q_sub(this->_m_iStorage, _Which);
-
-		return *this;
-	}
-
-	CSlowInteger& operator*=(_In_ int _Which) {
-		this->_m_iStorage = Q_mul(this->_m_iStorage, _Which);
-
-		return *this;
-	}
-
-	CSlowInteger& operator/=(_In_ int _Which) {
-		this->_m_iStorage = Q_div(this->_m_iStorage, _Which);
-
-		return *this;
-	}
-
-	CSlowInteger& operator^=(_In_ int _Which) {
-		this->_m_iStorage = Q_xor(this->_m_iStorage, _Which);
-
-		return *this;
-	}
-
-	//shifting
-	CSlowInteger& operator>>(_In_ int _HowMuch) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_shr(result->_m_iStorage, _HowMuch);
-
-		return *result;
-	}
-
-	CSlowInteger& operator<<(_In_ int _HowMuch) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		result->_m_iStorage = Q_shl(result->_m_iStorage, _HowMuch);
-
-		return *result;
-	}
-
-	CSlowInteger& operator>>=(_In_ int _HowMuch) {
-		this->_m_iStorage = Q_shr(this->_m_iStorage, _HowMuch);
-
-		return *this;
-	}
-
-	CSlowInteger& operator<<=(_In_ int _HowMuch) {
-		this->_m_iStorage = Q_shl(this->_m_iStorage, _HowMuch);
-
-		return *this;
-	}
-	//shifting end
-
-	//remainder
-	CSlowInteger& operator%(_In_ int _HowMuch) {
-		CSlowInteger* result = Q_new(CSlowInteger)(this->_m_iStorage);
-
-		int remainder = 0;
-
-		Q_div(result->_m_iStorage, _HowMuch, &remainder);
-
-		result->_m_iStorage = remainder;
-
-		return *result;
-	}
-
-	CSlowInteger& operator%=(_In_ int _HowMuch) {
-		int remainder = 0;
-
-		Q_div(this->_m_iStorage, _HowMuch, &remainder);
-
-		this->_m_iStorage = remainder;
-
-		return *this;
-	}
-	//remainder end
-
-	Q_bool operator==(_In_ int _Which) {
-		return this->_m_iStorage == _Which ? Q_TRUE : Q_FALSE;
-	}
-	//generic int operators end
-
-	//Unary plus/minus
-	CSlowInteger& operator+() {
-		return *this;
-	}
-	CSlowInteger& operator-() {
-		return *Q_new(CSlowInteger)(Q_mul(this->_m_iStorage, -1));
-	}
-	//Unary plus/minus end
-
-	//negotiate
-	CSlowInteger& operator~() {
-		return *Q_new(CSlowInteger)(~this->_m_iStorage);
-	}
-	//negotiate end
-
-	operator int() {
-		return this->_m_iStorage;
-	}
-protected:
-	int _m_iStorage;
-} CSlowInteger, Q_int;
 
 #else //__cplusplus
 #error C++ compiler required to compile functional.hpp.
